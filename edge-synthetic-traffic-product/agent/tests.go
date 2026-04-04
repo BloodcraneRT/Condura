@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"time"
@@ -31,6 +33,14 @@ func RunTask(t models.Task) models.TaskResult {
 	case models.TaskTypePing:
 		// Fallback to TCP ping if real ICMP needs root
 		err = runTCPTest(t.Target + ":80") // Assuming target is an IP, fallback to 80
+	case models.TaskTypeDownload:
+		var bytesRecv int64
+		bytesRecv, err = runDownloadTest(t.Target)
+		res.BytesRecv = bytesRecv
+	case models.TaskTypeUpload:
+		var bytesSent int64
+		bytesSent, err = runUploadTest(t.Target)
+		res.BytesSent = bytesSent
 	default:
 		err = fmt.Errorf("unknown task type: %s", t.Type)
 	}
@@ -79,4 +89,49 @@ func runUDPTest(target string) error {
 	// Send a dummy payload
 	_, err = conn.Write([]byte("ping"))
 	return err
+}
+
+func runDownloadTest(target string) (int64, error) {
+	client := http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(target)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return 0, fmt.Errorf("HTTP status: %d", resp.StatusCode)
+	}
+
+	bytesRead, err := io.Copy(io.Discard, resp.Body)
+	return bytesRead, err
+}
+
+func runUploadTest(target string) (int64, error) {
+	client := http.Client{Timeout: 30 * time.Second}
+
+	// Create a dummy 10MB payload
+	size := 10 * 1024 * 1024
+	payload := make([]byte, size)
+	for i := range payload {
+		payload[i] = 'B'
+	}
+
+	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("Content-Type", "application/octet-stream")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return 0, fmt.Errorf("HTTP status: %d", resp.StatusCode)
+	}
+
+	return int64(size), nil
 }

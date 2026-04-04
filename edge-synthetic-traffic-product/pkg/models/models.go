@@ -24,10 +24,12 @@ type Source struct {
 type TaskType string
 
 const (
-	TaskTypePing TaskType = "ping"
-	TaskTypeHTTP TaskType = "http"
-	TaskTypeTCP  TaskType = "tcp"
-	TaskTypeUDP  TaskType = "udp"
+	TaskTypePing     TaskType = "ping"
+	TaskTypeHTTP     TaskType = "http"
+	TaskTypeTCP      TaskType = "tcp"
+	TaskTypeUDP      TaskType = "udp"
+	TaskTypeDownload TaskType = "download"
+	TaskTypeUpload   TaskType = "upload"
 )
 
 // Task represents a synthetic traffic test assigned to an agent.
@@ -50,7 +52,7 @@ type TaskResult struct {
 	Success     bool      `json:"success"`
 	LatencyMs   float64   `json:"latencyMs"`
 	ErrorMsg    string    `json:"errorMsg,omitempty"`
-	BytesSent   int64     `json:"bytesSent,omitempty"`
-	BytesRecv   int64     `json:"bytesRecv,omitempty"`
-	PacketLoss  float64   `json:"packetLoss,omitempty"` // For ping/udp tests
+	BytesSent   int64     `json:"bytesSent"`
+	BytesRecv   int64     `json:"bytesRecv"`
+	PacketLoss  float64   `json:"packetLoss"` // For ping/udp tests
 }

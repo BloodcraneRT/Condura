@@ -46,7 +46,9 @@ func initDB(filepath string) (*DB, error) {
 		timestamp DATETIME,
 		success BOOLEAN,
 		latency_ms REAL,
-		error_msg TEXT
+		error_msg TEXT,
+		bytes_sent INTEGER DEFAULT 0,
+		bytes_recv INTEGER DEFAULT 0
 	);
 	CREATE TABLE IF NOT EXISTS sources (
 		id TEXT PRIMARY KEY,
@@ -68,6 +70,8 @@ func initDB(filepath string) (*DB, error) {
 			{ID: uuid.New().String(), Name: "Google DNS", Target: "8.8.8.8", IsDefault: true},
 			{ID: uuid.New().String(), Name: "Cloudflare DNS", Target: "1.1.1.1", IsDefault: true},
 			{ID: uuid.New().String(), Name: "Google Web", Target: "https://google.com", IsDefault: true},
+			{ID: uuid.New().String(), Name: "Local 10MB Download", Target: "http://localhost:8080/api/v1/testdata/download?sizeBytes=10485760", IsDefault: true},
+			{ID: uuid.New().String(), Name: "Local Data Upload", Target: "http://localhost:8080/api/v1/testdata/upload", IsDefault: true},
 		}
 		for _, s := range defaultSources {
 			db.Exec(`INSERT INTO sources (id, name, target, is_default) VALUES (?, ?, ?, ?)`,
@@ -111,8 +115,8 @@ func (db *DB) GetTasksForAgent(agentID string) ([]models.Task, error) {
 
 func (db *DB) InsertResult(r models.TaskResult) error {
 	id := uuid.New().String()
-	_, err := db.Exec(`INSERT INTO results (id, task_id, agent_id, timestamp, success, latency_ms, error_msg) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		id, r.TaskID, r.AgentID, r.Timestamp, r.Success, r.LatencyMs, r.ErrorMsg)
+	_, err := db.Exec(`INSERT INTO results (id, task_id, agent_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, r.TaskID, r.AgentID, r.Timestamp, r.Success, r.LatencyMs, r.ErrorMsg, r.BytesSent, r.BytesRecv)
 	return err
 }
 
@@ -137,7 +141,7 @@ func (db *DB) GetAllAgents() ([]models.Agent, error) {
 }
 
 func (db *DB) GetRecentResults(limit int) ([]models.TaskResult, error) {
-	rows, err := db.Query(`SELECT id, task_id, agent_id, timestamp, success, latency_ms, error_msg FROM results ORDER BY timestamp DESC LIMIT ?`, limit)
+	rows, err := db.Query(`SELECT id, task_id, agent_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv FROM results ORDER BY timestamp DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +150,7 @@ func (db *DB) GetRecentResults(limit int) ([]models.TaskResult, error) {
 	var results []models.TaskResult
 	for rows.Next() {
 		var r models.TaskResult
-		err := rows.Scan(&r.ID, &r.TaskID, &r.AgentID, &r.Timestamp, &r.Success, &r.LatencyMs, &r.ErrorMsg)
+		err := rows.Scan(&r.ID, &r.TaskID, &r.AgentID, &r.Timestamp, &r.Success, &r.LatencyMs, &r.ErrorMsg, &r.BytesSent, &r.BytesRecv)
 		if err != nil {
 			return nil, err
 		}
