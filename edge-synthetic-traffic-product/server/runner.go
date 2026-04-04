@@ -91,7 +91,8 @@ func runUDPTest(target string) error {
 }
 
 func runDownloadTest(target string) (int64, error) {
-	client := http.Client{Timeout: 30 * time.Second}
+	// A 60-second timeout allows for downloads up to ~2GB to complete depending on network speed
+	client := http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Get(target)
 	if err != nil {
 		return 0, err
@@ -107,7 +108,8 @@ func runDownloadTest(target string) (int64, error) {
 }
 
 func runUploadTest(target string) (int64, error) {
-	client := http.Client{Timeout: 30 * time.Second}
+	// A 60-second timeout allows for slow uploads
+	client := http.Client{Timeout: 60 * time.Second}
 
 	// Create a dummy 10MB payload
 	size := 10 * 1024 * 1024

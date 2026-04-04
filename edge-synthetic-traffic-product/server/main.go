@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"flag"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/edgesynth/edgesynth/pkg/models"
@@ -55,6 +57,7 @@ func main() {
 	go startTaskRunner(database)
 
 	// API Routes for UI
+	http.HandleFunc("/api/v1/ui/metrics", handleUIMetrics)
 	http.HandleFunc("/api/v1/ui/results", handleUIResults)
 	http.HandleFunc("/api/v1/ui/tasks", handleUITasks) // for creating tasks
 	http.HandleFunc("/api/v1/ui/sources", handleUISources) // for getting/creating sources
@@ -77,23 +80,78 @@ func main() {
 	log.Fatal(http.ListenAndServe(addr, enableCORS(http.DefaultServeMux)))
 }
 
+var (
+	activeTasks     = make(map[string]context.CancelFunc)
+	activeTasksLock sync.Mutex
+)
+
 func startTaskRunner(db *DB) {
-	ticker := time.NewTicker(15 * time.Second)
+	// Sync loop checks every 5 seconds for new or removed tasks
+	ticker := time.NewTicker(5 * time.Second)
 	for range ticker.C {
 		tasks, err := db.GetEnabledTasks()
 		if err != nil {
 			log.Printf("Failed to get tasks: %v", err)
 			continue
 		}
+
+		currentTaskIDs := make(map[string]bool)
+
+		activeTasksLock.Lock()
 		for _, task := range tasks {
-			go func(t models.Task) {
-				res := RunTask(t)
-				err := db.InsertResult(res)
-				if err != nil {
-					log.Printf("Failed to insert result for task %s: %v", t.ID, err)
-				}
-			}(task)
+			currentTaskIDs[task.ID] = true
+			if _, exists := activeTasks[task.ID]; !exists {
+				// Start a new goroutine for this task
+				ctx, cancel := context.WithCancel(context.Background())
+				activeTasks[task.ID] = cancel
+				go runTaskLoop(ctx, db, task)
+			}
 		}
+
+		// Stop and clean up any tasks that are no longer enabled
+		for id, cancel := range activeTasks {
+			if !currentTaskIDs[id] {
+				cancel()
+				delete(activeTasks, id)
+			}
+		}
+		activeTasksLock.Unlock()
+	}
+}
+
+func runTaskLoop(ctx context.Context, db *DB, t models.Task) {
+	// Execute immediately once
+	executeTask(db, t)
+
+	interval := t.Interval
+	if interval < 1 {
+		interval = 10 // Minimum 10 seconds
+	}
+
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			executeTask(db, t)
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func executeTask(db *DB, t models.Task) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic executing task %s: %v", t.ID, r)
+		}
+	}()
+
+	res := RunTask(t)
+	err := db.InsertResult(res)
+	if err != nil {
+		log.Printf("Failed to insert result for task %s: %v", t.ID, err)
 	}
 }
 
@@ -112,6 +170,19 @@ func enableCORS(next http.Handler) http.HandlerFunc {
 
 // UI Handlers
 
+func handleUIMetrics(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	metrics, err := database.GetAggregatedMetrics()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(metrics)
+}
+
 func handleUIResults(w http.ResponseWriter, r *http.Request) {
 	results, err := database.GetRecentResults(100)
 	if err != nil {
@@ -125,6 +196,18 @@ func handleUIResults(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleUITasks(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		tasks, err := database.GetEnabledTasks()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if tasks == nil {
+			tasks = []models.Task{}
+		}
+		json.NewEncoder(w).Encode(tasks)
+		return
+	}
 	if r.Method == http.MethodPost {
 		var t models.Task
 		if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
@@ -136,6 +219,19 @@ func handleUITasks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
+		return
+	}
+	if r.Method == http.MethodDelete {
+		id := r.URL.Query().Get("id")
+		if id == "" {
+			http.Error(w, "Missing task id", http.StatusBadRequest)
+			return
+		}
+		if err := database.DeleteTask(id); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

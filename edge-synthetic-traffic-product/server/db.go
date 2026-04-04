@@ -46,6 +46,10 @@ func initDB(connStr string) (*DB, error) {
 			{ID: uuid.New().String(), Name: "Local Data Upload", Target: "http://localhost:8080/api/v1/testdata/upload", IsDefault: true},
 			{ID: uuid.New().String(), Name: "JSONPlaceholder API", Target: "https://jsonplaceholder.typicode.com/posts/1", IsDefault: true},
 			{ID: uuid.New().String(), Name: "Public PokeAPI", Target: "https://pokeapi.co/api/v2/pokemon/ditto", IsDefault: true},
+			{ID: uuid.New().String(), Name: "HTTPBin GET", Target: "https://httpbin.org/get", IsDefault: true},
+			{ID: uuid.New().String(), Name: "Random User API", Target: "https://randomuser.me/api/", IsDefault: true},
+			{ID: uuid.New().String(), Name: "GitHub API Status", Target: "https://api.github.com/zen", IsDefault: true},
+			{ID: uuid.New().String(), Name: "CoinDesk Bitcoin Price", Target: "https://api.coindesk.com/v1/bpi/currentprice.json", IsDefault: true},
 		}
 		for _, s := range defaultSources {
 			db.Exec(`INSERT INTO sources (id, name, target, is_default) VALUES (?, ?, ?, ?)`,
@@ -57,7 +61,7 @@ func initDB(connStr string) (*DB, error) {
 }
 
 func (db *DB) GetEnabledTasks() ([]models.Task, error) {
-	rows, err := db.Query(`SELECT id, type, target, interval, config, enabled FROM tasks WHERE enabled = 1`)
+	rows, err := db.Query(`SELECT id, type, target, interval, config, enabled FROM tasks FINAL WHERE enabled = 1`)
 	if err != nil {
 		return nil, err
 	}
@@ -110,8 +114,35 @@ func (db *DB) CreateTask(t models.Task) error {
 	return err
 }
 
+func (db *DB) DeleteTask(id string) error {
+	// For ReplacingMergeTree, deleting is tricky. We can insert a disabled version to "delete" it
+	// from the active runner's perspective.
+	_, err := db.Exec(`INSERT INTO tasks (id, type, target, interval, config, enabled) VALUES (?, '', '', 0, '', 0)`, id)
+	return err
+}
+
+func (db *DB) GetAggregatedMetrics() (models.AggregatedMetrics, error) {
+	var m models.AggregatedMetrics
+	err := db.QueryRow(`
+		SELECT
+			count(),
+			countIf(success = 1),
+			countIf(success = 0),
+			avg(latency_ms),
+			sum(bytes_sent),
+			sum(bytes_recv)
+		FROM results
+	`).Scan(&m.TotalTests, &m.TotalSuccesses, &m.TotalFailures, &m.AvgLatencyMs, &m.TotalBytesSent, &m.TotalBytesRecv)
+
+	if err != nil {
+		// Ignore null errors on empty db
+		return m, nil
+	}
+	return m, nil
+}
+
 func (db *DB) GetSources() ([]models.Source, error) {
-	rows, err := db.Query(`SELECT id, name, target, is_default FROM sources`)
+	rows, err := db.Query(`SELECT id, name, target, is_default FROM sources FINAL`)
 	if err != nil {
 		return nil, err
 	}

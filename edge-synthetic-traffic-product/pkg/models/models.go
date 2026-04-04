@@ -44,3 +44,13 @@ type TaskResult struct {
 	BytesRecv   int64     `json:"bytesRecv"`
 	PacketLoss  float64   `json:"packetLoss"` // For ping/udp tests
 }
+
+// AggregatedMetrics represents summary statistics of tests over time.
+type AggregatedMetrics struct {
+	TotalTests      int64   `json:"totalTests"`
+	TotalSuccesses  int64   `json:"totalSuccesses"`
+	TotalFailures   int64   `json:"totalFailures"`
+	AvgLatencyMs    float64 `json:"avgLatencyMs"`
+	TotalBytesSent  int64   `json:"totalBytesSent"`
+	TotalBytesRecv  int64   `json:"totalBytesRecv"`
+}

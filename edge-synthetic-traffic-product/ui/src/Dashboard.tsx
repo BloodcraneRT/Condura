@@ -18,11 +18,22 @@ interface Source {
   isDefault: boolean;
 }
 
+interface Metrics {
+  totalTests: number;
+  totalSuccesses: number;
+  totalFailures: number;
+  avgLatencyMs: number;
+  totalBytesSent: number;
+  totalBytesRecv: number;
+}
+
 const API_URL = '/api/v1';
 
 export const Dashboard: React.FC = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
 
   // Task form state
   const [selectedType, setSelectedType] = useState('ping');
@@ -33,6 +44,11 @@ export const Dashboard: React.FC = () => {
   const [newSourceTarget, setNewSourceTarget] = useState('');
 
   const fetchData = () => {
+    fetch(`${API_URL}/ui/tasks`)
+      .then(res => res.json())
+      .then(data => setTasks(data))
+      .catch(console.error);
+
     fetch(`${API_URL}/ui/results`)
       .then(res => res.json())
       .then(data => setResults(data))
@@ -41,6 +57,11 @@ export const Dashboard: React.FC = () => {
     fetch(`${API_URL}/ui/sources`)
       .then(res => res.json())
       .then(data => setSources(data))
+      .catch(console.error);
+
+    fetch(`${API_URL}/ui/metrics`)
+      .then(res => res.json())
+      .then(data => setMetrics(data))
       .catch(console.error);
   };
 
@@ -65,6 +86,15 @@ export const Dashboard: React.FC = () => {
       })
     }).then(() => {
       alert("Task scheduled successfully!");
+      fetchData();
+    }).catch(console.error);
+  };
+
+  const handleDeleteTask = (id: string) => {
+    fetch(`${API_URL}/ui/tasks?id=${id}`, {
+      method: 'DELETE'
+    }).then(() => {
+      fetchData();
     }).catch(console.error);
   };
 
@@ -92,6 +122,32 @@ export const Dashboard: React.FC = () => {
     <div className="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8">
       <div className="px-4 sm:px-0">
         <h1 className="text-4xl font-bold tracking-tight text-black mb-10">Dashboard</h1>
+
+        {/* Metrics Overview */}
+        {metrics && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center">
+              <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Total Tests</p>
+              <p className="text-3xl font-black text-black">{metrics.totalTests}</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center">
+              <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Success Rate</p>
+              <p className={`text-3xl font-black ${metrics.totalTests > 0 && metrics.totalSuccesses / metrics.totalTests > 0.9 ? 'text-green-600' : 'text-red-600'}`}>
+                {metrics.totalTests > 0 ? Math.round((metrics.totalSuccesses / metrics.totalTests) * 100) : 0}%
+              </p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center">
+              <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Avg Latency</p>
+              <p className="text-3xl font-black text-black">{metrics.avgLatencyMs.toFixed(1)}ms</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center">
+              <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Data Transferred</p>
+              <p className="text-3xl font-black text-black">
+                {((metrics.totalBytesRecv + metrics.totalBytesSent) / 1024 / 1024).toFixed(1)} <span className="text-xl">MB</span>
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           {/* Create Task Form */}
@@ -161,6 +217,33 @@ export const Dashboard: React.FC = () => {
                 Save Target
               </button>
             </form>
+          </div>
+        </div>
+
+        <div className="mb-12">
+          <h2 className="text-xl font-bold tracking-tight text-black mb-6">Active Tasks</h2>
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <ul className="divide-y divide-gray-100">
+              {tasks.length === 0 ? (
+                <li className="px-6 py-8 text-center text-sm text-gray-500">No tasks currently scheduled.</li>
+              ) : (
+                tasks.map(task => (
+                  <li key={task.id} className="px-6 py-5 hover:bg-gray-50 transition-colors flex justify-between items-center">
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 uppercase tracking-wide">{task.type}</p>
+                      <p className="text-xs text-gray-500 mt-1">{task.target}</p>
+                      <p className="text-[10px] text-gray-400 mt-1">Runs every {task.interval}s • ID: {task.id.substring(0,8)}</p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="px-3 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-md hover:bg-red-100 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
           </div>
         </div>
 
