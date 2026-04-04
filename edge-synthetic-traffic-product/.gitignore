@@ -1,0 +1,8 @@
+/bin/
+*.db
+*.log
+/server/ui-dist/
+/ui/dist/
+/ui/node_modules/
+/server/server
+/agent/agent
