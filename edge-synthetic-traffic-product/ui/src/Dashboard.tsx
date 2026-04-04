@@ -125,45 +125,45 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8">
-      <div className="px-4 sm:px-0">
-        <h1 className="text-4xl font-bold tracking-tight text-black mb-10">Dashboard</h1>
+    <div className="flex flex-col gap-10">
+      <div className="flex flex-col gap-8">
+        <h1 className="text-4xl font-extrabold tracking-tight text-[#222222]">Overview</h1>
 
         {/* Metrics Overview */}
         {metrics && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
-            <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center">
-              <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Total Tests</p>
-              <p className="text-3xl font-black text-black">{metrics.totalTests}</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-white shadow-sm border border-gray-100 rounded-2xl p-6 flex flex-col justify-center">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Total Executions</p>
+              <p className="text-4xl font-extrabold text-[#222222]">{metrics.totalTests}</p>
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center">
-              <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Success Rate</p>
-              <p className={`text-3xl font-black ${metrics.totalTests > 0 && metrics.totalSuccesses / metrics.totalTests > 0.9 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="bg-white shadow-sm border border-gray-100 rounded-2xl p-6 flex flex-col justify-center">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Health Score</p>
+              <p className={`text-4xl font-extrabold ${metrics.totalTests > 0 && metrics.totalSuccesses / metrics.totalTests > 0.9 ? 'text-emerald-500' : 'text-rose-500'}`}>
                 {metrics.totalTests > 0 ? Math.round((metrics.totalSuccesses / metrics.totalTests) * 100) : 0}%
               </p>
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center">
-              <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Avg Latency</p>
-              <p className="text-3xl font-black text-black">{metrics.avgLatencyMs.toFixed(1)}ms</p>
+            <div className="bg-white shadow-sm border border-gray-100 rounded-2xl p-6 flex flex-col justify-center">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Avg Latency</p>
+              <p className="text-4xl font-extrabold text-[#222222]">{metrics.avgLatencyMs.toFixed(1)}<span className="text-xl font-medium text-gray-400 ml-1">ms</span></p>
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center">
-              <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Data Transferred</p>
-              <p className="text-3xl font-black text-black">
-                {((metrics.totalBytesRecv + metrics.totalBytesSent) / 1024 / 1024).toFixed(1)} <span className="text-xl">MB</span>
+            <div className="bg-white shadow-sm border border-gray-100 rounded-2xl p-6 flex flex-col justify-center">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Data Throughput</p>
+              <p className="text-4xl font-extrabold text-[#222222]">
+                {((metrics.totalBytesRecv + metrics.totalBytesSent) / 1024 / 1024).toFixed(1)}<span className="text-xl font-medium text-gray-400 ml-1">MB</span>
               </p>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Create Task Form */}
-          <div className="bg-white border border-gray-200 rounded-xl p-8">
-            <h2 className="text-lg font-semibold mb-6 text-black tracking-tight">Schedule Task</h2>
-            <form onSubmit={handleCreateTask} className="space-y-5">
+          <div className="bg-white shadow-md border border-gray-100 rounded-3xl p-8 transition-shadow duration-300">
+            <h2 className="text-xl font-bold mb-6 text-[#222222] tracking-tight">Schedule New Test</h2>
+            <form onSubmit={handleCreateTask} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">Test Type</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Test Type</label>
                 <select
-                  className="block w-full border-gray-300 bg-gray-50 py-3 px-4 focus:outline-none focus:ring-0 focus:border-black sm:text-sm rounded-lg border"
+                  className="block w-full border-gray-200 bg-white py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-xl border shadow-sm transition-shadow"
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
                 >
@@ -179,9 +179,9 @@ export const Dashboard: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">Source Target</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Source Target</label>
                 <select
-                  className="block w-full border-gray-300 bg-gray-50 py-3 px-4 focus:outline-none focus:ring-0 focus:border-black sm:text-sm rounded-lg border"
+                  className="block w-full border-gray-200 bg-white py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-xl border shadow-sm transition-shadow"
                   value={selectedSource}
                   onChange={(e) => setSelectedSource(e.target.value)}
                   required
@@ -192,72 +192,79 @@ export const Dashboard: React.FC = () => {
               </div>
               {selectedType === 'pcap_replay' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Network Interface (e.g., eth0)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Network Interface (e.g., eth0)</label>
                   <input
                     type="text"
                     placeholder="eth0"
-                    className="block w-full border-gray-300 bg-gray-50 py-3 px-4 focus:outline-none focus:ring-0 focus:border-black sm:text-sm rounded-lg border"
+                    className="block w-full border-gray-200 bg-white py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-xl border shadow-sm transition-shadow"
                     value={taskConfig}
                     onChange={(e) => setTaskConfig(e.target.value)}
                   />
                 </div>
               )}
-              <button type="submit" className="w-full mt-2 justify-center py-3 px-4 text-sm font-semibold rounded-lg text-white bg-black hover:bg-gray-900 transition-colors">
+              <button type="submit" className="w-full mt-4 justify-center py-3.5 px-4 text-sm font-bold rounded-xl text-white bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 shadow-md hover:shadow-lg transition-all focus:ring-2 focus:ring-offset-2 focus:ring-rose-500">
                 Run Task
               </button>
             </form>
           </div>
 
           {/* Add Source Form */}
-          <div className="bg-white border border-gray-200 rounded-xl p-8">
-            <h2 className="text-lg font-semibold mb-6 text-black tracking-tight">New Target Source</h2>
-            <form onSubmit={handleCreateSource} className="space-y-5">
+          <div className="bg-white shadow-md border border-gray-100 rounded-3xl p-8 transition-shadow duration-300">
+            <h2 className="text-xl font-bold mb-6 text-[#222222] tracking-tight">New Target Source</h2>
+            <form onSubmit={handleCreateSource} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">Name</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Production API"
-                  className="block w-full border-gray-300 bg-gray-50 py-3 px-4 focus:outline-none focus:ring-0 focus:border-black sm:text-sm rounded-lg border"
+                  className="block w-full border-gray-200 bg-white py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-xl border shadow-sm transition-shadow"
                   value={newSourceName}
                   onChange={(e) => setNewSourceName(e.target.value)}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">Target URL or IP</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Target URL or IP</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. https://api.example.com"
-                  className="block w-full border-gray-300 bg-gray-50 py-3 px-4 focus:outline-none focus:ring-0 focus:border-black sm:text-sm rounded-lg border"
+                  className="block w-full border-gray-200 bg-white py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-xl border shadow-sm transition-shadow"
                   value={newSourceTarget}
                   onChange={(e) => setNewSourceTarget(e.target.value)}
                 />
               </div>
-              <button type="submit" className="w-full mt-2 justify-center py-3 px-4 text-sm font-semibold rounded-lg text-black bg-gray-100 hover:bg-gray-200 transition-colors">
+              <button type="submit" className="w-full mt-4 justify-center py-3.5 px-4 text-sm font-bold rounded-xl text-gray-700 bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-sm transition-all">
                 Save Target
               </button>
             </form>
           </div>
         </div>
 
-        <div className="mb-12">
-          <h2 className="text-xl font-bold tracking-tight text-black mb-6">Active Tasks</h2>
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <ul className="divide-y divide-gray-100">
+        <div className="mt-6 mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold tracking-tight text-[#222222]">Active Tasks</h2>
+          </div>
+          <div className="bg-white shadow-sm border border-gray-100 rounded-3xl overflow-hidden">
+            <ul className="divide-y divide-gray-50">
               {tasks.length === 0 ? (
-                <li className="px-6 py-8 text-center text-sm text-gray-500">No tasks currently scheduled.</li>
+                <li className="px-8 py-10 text-center text-sm font-medium text-gray-400">No tasks currently scheduled.</li>
               ) : (
                 tasks.map(task => (
-                  <li key={task.id} className="px-6 py-5 hover:bg-gray-50 transition-colors flex justify-between items-center">
-                    <div>
-                      <p className="text-sm font-bold text-gray-900 uppercase tracking-wide">{task.type}</p>
-                      <p className="text-xs text-gray-500 mt-1">{task.target}</p>
-                      <p className="text-[10px] text-gray-400 mt-1">Runs every {task.interval}s • ID: {task.id.substring(0,8)}</p>
+                  <li key={task.id} className="px-8 py-6 hover:bg-gray-50 transition-colors flex justify-between items-center group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center border border-rose-100">
+                        <svg className="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-[#222222] uppercase tracking-wide">{task.type}</p>
+                        <p className="text-xs font-medium text-gray-500 mt-1.5">{task.target}</p>
+                        <p className="text-[11px] text-gray-400 mt-1 font-medium">Runs every {task.interval}s</p>
+                      </div>
                     </div>
                     <button
                       onClick={() => handleDeleteTask(task.id)}
-                      className="px-3 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-md hover:bg-red-100 transition-colors"
+                      className="opacity-0 group-hover:opacity-100 px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl hover:bg-red-100 transition-all"
                     >
                       Delete
                     </button>
@@ -269,44 +276,77 @@ export const Dashboard: React.FC = () => {
         </div>
 
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-black mb-6">Recent Traffic Results</h2>
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <ul className="divide-y divide-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold tracking-tight text-[#222222]">Recent Traffic Logs</h2>
+          </div>
+          <div className="bg-white shadow-sm border border-gray-100 rounded-3xl overflow-hidden">
+            <ul className="divide-y divide-gray-50">
               {results.length === 0 ? (
-                <li className="px-6 py-8 text-center text-sm text-gray-500">No tests executed yet.</li>
+                <li className="px-8 py-10 text-center text-sm font-medium text-gray-400">No tests executed yet.</li>
               ) : (
                 results.map(res => (
-                  <li key={res.id} className="px-6 py-5 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-semibold text-gray-900">
-                        Task <span className="text-gray-500 font-normal">{res.taskId.substring(0,8)}</span>
-                      </p>
-                      <div>
+                  <li key={res.id} className="px-8 py-6 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
                         {res.success ? (
-                          <span className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold rounded-md bg-green-50 text-green-700">Success</span>
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
                         ) : (
-                          <span className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold rounded-md bg-red-50 text-red-700">Failed</span>
+                          <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"></div>
                         )}
+                        <p className="text-sm font-bold text-[#222222]">
+                          Task <span className="text-gray-400 font-medium ml-1">#{res.taskId.substring(0,8)}</span>
+                        </p>
                       </div>
+                      <span className="text-xs font-semibold text-gray-400 bg-gray-50 px-3 py-1 rounded-lg border border-gray-100">{new Date(res.timestamp).toLocaleString()}</span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <div className="flex items-center gap-4 flex-wrap">
-                        <span>Latency: <strong className="text-gray-900 font-semibold">{res.latencyMs.toFixed(2)}ms</strong></span>
-                        {res.bytesRecv > 0 && <span>Downloaded: <strong className="text-gray-900 font-semibold">{(res.bytesRecv / 1024 / 1024).toFixed(2)} MB</strong></span>}
-                        {res.bytesSent > 0 && <span>Uploaded: <strong className="text-gray-900 font-semibold">{(res.bytesSent / 1024 / 1024).toFixed(2)} MB</strong></span>}
-                        {res.ttfbMs > 0 && <span>TTFB: <strong className="text-gray-900 font-semibold">{res.ttfbMs.toFixed(2)}ms</strong></span>}
-                        {res.dnsTimeMs > 0 && <span>DNS: <strong className="text-gray-900 font-semibold">{res.dnsTimeMs.toFixed(2)}ms</strong></span>}
-                        {res.connectTimeMs > 0 && <span>Connect: <strong className="text-gray-900 font-semibold">{res.connectTimeMs.toFixed(2)}ms</strong></span>}
-                        {res.hops > 0 && <span>Hops: <strong className="text-gray-900 font-semibold">{res.hops}</strong></span>}
+                    <div className="flex items-center gap-6 flex-wrap">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Latency</span>
+                        <span className="text-sm font-bold text-[#222222]">{res.latencyMs.toFixed(1)}ms</span>
                       </div>
-                      <span>{new Date(res.timestamp).toLocaleString()}</span>
+                      {res.ttfbMs > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">TTFB</span>
+                          <span className="text-sm font-bold text-[#222222]">{res.ttfbMs.toFixed(1)}ms</span>
+                        </div>
+                      )}
+                      {res.dnsTimeMs > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">DNS</span>
+                          <span className="text-sm font-bold text-[#222222]">{res.dnsTimeMs.toFixed(1)}ms</span>
+                        </div>
+                      )}
+                      {res.connectTimeMs > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Connect</span>
+                          <span className="text-sm font-bold text-[#222222]">{res.connectTimeMs.toFixed(1)}ms</span>
+                        </div>
+                      )}
+                      {res.bytesRecv > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Downloaded</span>
+                          <span className="text-sm font-bold text-[#222222]">{(res.bytesRecv / 1024 / 1024).toFixed(2)} MB</span>
+                        </div>
+                      )}
+                      {res.bytesSent > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Uploaded</span>
+                          <span className="text-sm font-bold text-[#222222]">{(res.bytesSent / 1024 / 1024).toFixed(2)} MB</span>
+                        </div>
+                      )}
+                      {res.hops > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Hops</span>
+                          <span className="text-sm font-bold text-[#222222]">{res.hops}</span>
+                        </div>
+                      )}
                     </div>
                     {!res.success && (
-                      <p className="mt-3 text-xs text-red-600 bg-red-50 p-2 rounded-md whitespace-pre-wrap">{res.errorMsg}</p>
+                      <p className="mt-4 text-xs font-medium text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-100 whitespace-pre-wrap">{res.errorMsg}</p>
                     )}
                     {res.success && res.errorMsg && (
-                      <div className="mt-3 text-xs text-gray-600 bg-gray-100 p-2 rounded-md overflow-auto max-h-32">
-                        <pre>{res.errorMsg}</pre>
+                      <div className="mt-4 text-xs font-mono text-gray-600 bg-gray-50 p-4 rounded-xl border border-gray-100 overflow-auto max-h-40">
+                        <pre className="text-[10px] leading-relaxed">{res.errorMsg}</pre>
                       </div>
                     )}
                   </li>
