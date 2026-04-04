@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -19,20 +20,32 @@ import (
 var staticFS embed.FS
 
 var (
-	dbPath   string
+	connStr  string
 	port     int
 	database *DB
 )
 
 func main() {
-	flag.StringVar(&dbPath, "db", "edgesynth.db", "Path to SQLite database")
+	defaultConnStr := os.Getenv("DATABASE_URL")
+	if defaultConnStr == "" {
+		defaultConnStr = "postgres://postgres:password@localhost:5432/postgres?sslmode=disable"
+	}
+	flag.StringVar(&connStr, "db", defaultConnStr, "PostgreSQL connection string")
 	flag.IntVar(&port, "port", 8080, "Port to run server on")
 	flag.Parse()
 
 	log.Printf("Starting EdgeSynth Control Plane Server on port %d...", port)
+	log.Printf("Connecting to Database...")
 
 	var err error
-	database, err = initDB(dbPath)
+	// Retry connection for 30s to allow docker container startup
+	for i := 0; i < 30; i++ {
+		database, err = initDB(connStr)
+		if err == nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}

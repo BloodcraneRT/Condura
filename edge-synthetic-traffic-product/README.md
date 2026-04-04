@@ -5,10 +5,11 @@ EdgeSynth is a polished, multi-platform product for synthetic traffic generation
 It is distributed as a **single standalone binary** that includes the web dashboard and internal task execution.
 
 ## Features
-- **Standalone Binary**: Run it anywhere (Linux, Windows, macOS) with zero external dependencies. Pure Go SQLite is embedded.
+- **Standalone Binary**: Run it anywhere (Linux, Windows, macOS). Relies on a PostgreSQL / TimescaleDB backend.
 - **Synthetic Testing**: HTTP latency checks, TCP connection tests, UDP payload tests, and heavy Data Uploads / Downloads (up to GBs).
 - **Target Sources**: Target predefined open APIs (like JSONPlaceholder, PokeAPI), loopback data endpoints for load testing, or add your own custom targets.
 - **Modern Dashboard**: Beautiful React/Tailwind UI to schedule tests and view results in real-time.
+- **TimescaleDB Integration**: Uses TimescaleDB hypertables under the hood for massive scalability of synthetic traffic results.
 
 ## Architecture
 1. The **EdgeSynth** application starts up, initializes its local database, and serves the API + Web UI.
@@ -32,8 +33,19 @@ Binaries will be output in the `bin/` directory.
 
 ## Running
 
-1. **Start EdgeSynth**
+1. **Start TimescaleDB**
 ```bash
+docker run -d --name timescaledb -p 5432:5432 -e POSTGRES_PASSWORD=password timescale/timescaledb:latest-pg14
+```
+
+2. **Start EdgeSynth**
+```bash
+# Uses default Postgres connection string localhost:5432
 ./bin/edgesynth-linux-amd64 --port 8080
 ```
 Open your browser to `http://localhost:8080` to view the dashboard and schedule tasks.
+
+Optionally, you can override the database URL using the `DATABASE_URL` environment variable or the `--db` flag:
+```bash
+DATABASE_URL="postgres://user:pass@host:5432/dbname?sslmode=disable" ./bin/edgesynth-linux-amd64
+```

@@ -2,18 +2,19 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/edgesynth/edgesynth/pkg/models"
 	"github.com/google/uuid"
-	_ "modernc.org/sqlite"
+	_ "github.com/lib/pq"
 )
 
 type DB struct {
 	*sql.DB
 }
 
-func initDB(filepath string) (*DB, error) {
-	db, err := sql.Open("sqlite", filepath)
+func initDB(connStr string) (*DB, error) {
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
 	}
@@ -29,14 +30,14 @@ func initDB(filepath string) (*DB, error) {
 		enabled BOOLEAN
 	);
 	CREATE TABLE IF NOT EXISTS results (
-		id TEXT PRIMARY KEY,
+		id TEXT,
 		task_id TEXT,
-		timestamp DATETIME,
+		timestamp TIMESTAMPTZ NOT NULL,
 		success BOOLEAN,
-		latency_ms REAL,
+		latency_ms DOUBLE PRECISION,
 		error_msg TEXT,
-		bytes_sent INTEGER DEFAULT 0,
-		bytes_recv INTEGER DEFAULT 0
+		bytes_sent BIGINT DEFAULT 0,
+		bytes_recv BIGINT DEFAULT 0
 	);
 	CREATE TABLE IF NOT EXISTS sources (
 		id TEXT PRIMARY KEY,
@@ -47,7 +48,14 @@ func initDB(filepath string) (*DB, error) {
 	`
 	_, err = db.Exec(schema)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed creating schema: %w", err)
+	}
+
+	// Convert results table to TimescaleDB hypertable if not already done
+	_, err = db.Exec(`SELECT create_hypertable('results', 'timestamp', if_not_exists => TRUE);`)
+	if err != nil {
+		// Just log, as TimescaleDB extension might not be present if running plain Postgres
+		fmt.Printf("Warning: failed to create hypertable for results (ensure TimescaleDB is installed): %v\n", err)
 	}
 
 	// Seed default sources if table is empty
@@ -64,7 +72,7 @@ func initDB(filepath string) (*DB, error) {
 			{ID: uuid.New().String(), Name: "Public PokeAPI", Target: "https://pokeapi.co/api/v2/pokemon/ditto", IsDefault: true},
 		}
 		for _, s := range defaultSources {
-			db.Exec(`INSERT INTO sources (id, name, target, is_default) VALUES (?, ?, ?, ?)`,
+			db.Exec(`INSERT INTO sources (id, name, target, is_default) VALUES ($1, $2, $3, $4)`,
 				s.ID, s.Name, s.Target, s.IsDefault)
 		}
 	}
@@ -93,13 +101,13 @@ func (db *DB) GetEnabledTasks() ([]models.Task, error) {
 
 func (db *DB) InsertResult(r models.TaskResult) error {
 	id := uuid.New().String()
-	_, err := db.Exec(`INSERT INTO results (id, task_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+	_, err := db.Exec(`INSERT INTO results (id, task_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		id, r.TaskID, r.Timestamp, r.Success, r.LatencyMs, r.ErrorMsg, r.BytesSent, r.BytesRecv)
 	return err
 }
 
 func (db *DB) GetRecentResults(limit int) ([]models.TaskResult, error) {
-	rows, err := db.Query(`SELECT id, task_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv FROM results ORDER BY timestamp DESC LIMIT ?`, limit)
+	rows, err := db.Query(`SELECT id, task_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv FROM results ORDER BY timestamp DESC LIMIT $1`, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +129,7 @@ func (db *DB) CreateTask(t models.Task) error {
 	if t.ID == "" {
 		t.ID = uuid.New().String()
 	}
-	_, err := db.Exec(`INSERT INTO tasks (id, type, target, interval, config, enabled) VALUES (?, ?, ?, ?, ?, ?)`,
+	_, err := db.Exec(`INSERT INTO tasks (id, type, target, interval, config, enabled) VALUES ($1, $2, $3, $4, $5, $6)`,
 		t.ID, t.Type, t.Target, t.Interval, t.Config, t.Enabled)
 	return err
 }
@@ -149,7 +157,7 @@ func (db *DB) CreateSource(s models.Source) error {
 	if s.ID == "" {
 		s.ID = uuid.New().String()
 	}
-	_, err := db.Exec(`INSERT INTO sources (id, name, target, is_default) VALUES (?, ?, ?, ?)`,
+	_, err := db.Exec(`INSERT INTO sources (id, name, target, is_default) VALUES ($1, $2, $3, $4)`,
 		s.ID, s.Name, s.Target, s.IsDefault)
 	return err
 }
