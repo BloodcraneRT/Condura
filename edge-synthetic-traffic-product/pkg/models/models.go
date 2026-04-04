@@ -14,12 +14,14 @@ type Source struct {
 type TaskType string
 
 const (
-	TaskTypePing     TaskType = "ping"
-	TaskTypeHTTP     TaskType = "http"
-	TaskTypeTCP      TaskType = "tcp"
-	TaskTypeUDP      TaskType = "udp"
-	TaskTypeDownload TaskType = "download"
-	TaskTypeUpload   TaskType = "upload"
+	TaskTypePing       TaskType = "ping"
+	TaskTypeHTTP       TaskType = "http"
+	TaskTypeTCP        TaskType = "tcp"
+	TaskTypeUDP        TaskType = "udp"
+	TaskTypeDownload   TaskType = "download"
+	TaskTypeUpload     TaskType = "upload"
+	TaskTypeDNS        TaskType = "dns"
+	TaskTypeTraceroute TaskType = "traceroute"
 )
 
 // Task represents a synthetic traffic test.
@@ -39,10 +41,14 @@ type TaskResult struct {
 	Timestamp   time.Time `json:"timestamp"`
 	Success     bool      `json:"success"`
 	LatencyMs   float64   `json:"latencyMs"`
-	ErrorMsg    string    `json:"errorMsg,omitempty"`
-	BytesSent   int64     `json:"bytesSent"`
-	BytesRecv   int64     `json:"bytesRecv"`
-	PacketLoss  float64   `json:"packetLoss"` // For ping/udp tests
+	ErrorMsg      string    `json:"errorMsg,omitempty"`
+	BytesSent     int64     `json:"bytesSent"`
+	BytesRecv     int64     `json:"bytesRecv"`
+	PacketLoss    float64   `json:"packetLoss"` // For ping/udp tests
+	TTFBMs        float64   `json:"ttfbMs,omitempty"`
+	DNSTimeMs     float64   `json:"dnsTimeMs,omitempty"`
+	ConnectTimeMs float64   `json:"connectTimeMs,omitempty"`
+	Hops          int       `json:"hops,omitempty"`
 }
 
 // AggregatedMetrics represents summary statistics of tests over time.

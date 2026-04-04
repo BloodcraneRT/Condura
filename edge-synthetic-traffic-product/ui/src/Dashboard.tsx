@@ -9,6 +9,10 @@ interface Result {
   errorMsg: string;
   bytesSent: number;
   bytesRecv: number;
+  ttfbMs: number;
+  dnsTimeMs: number;
+  connectTimeMs: number;
+  hops: number;
 }
 
 interface Source {
@@ -162,9 +166,11 @@ export const Dashboard: React.FC = () => {
                   onChange={(e) => setSelectedType(e.target.value)}
                 >
                   <option value="ping">Ping</option>
-                  <option value="http">HTTP</option>
+                  <option value="http">HTTP (Web Load)</option>
                   <option value="tcp">TCP</option>
                   <option value="udp">UDP</option>
+                  <option value="dns">DNS Resolution</option>
+                  <option value="traceroute">Traceroute (Path)</option>
                   <option value="download">Data Download</option>
                   <option value="upload">Data Upload</option>
                 </select>
@@ -269,15 +275,24 @@ export const Dashboard: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 flex-wrap">
                         <span>Latency: <strong className="text-gray-900 font-semibold">{res.latencyMs.toFixed(2)}ms</strong></span>
                         {res.bytesRecv > 0 && <span>Downloaded: <strong className="text-gray-900 font-semibold">{(res.bytesRecv / 1024 / 1024).toFixed(2)} MB</strong></span>}
                         {res.bytesSent > 0 && <span>Uploaded: <strong className="text-gray-900 font-semibold">{(res.bytesSent / 1024 / 1024).toFixed(2)} MB</strong></span>}
+                        {res.ttfbMs > 0 && <span>TTFB: <strong className="text-gray-900 font-semibold">{res.ttfbMs.toFixed(2)}ms</strong></span>}
+                        {res.dnsTimeMs > 0 && <span>DNS: <strong className="text-gray-900 font-semibold">{res.dnsTimeMs.toFixed(2)}ms</strong></span>}
+                        {res.connectTimeMs > 0 && <span>Connect: <strong className="text-gray-900 font-semibold">{res.connectTimeMs.toFixed(2)}ms</strong></span>}
+                        {res.hops > 0 && <span>Hops: <strong className="text-gray-900 font-semibold">{res.hops}</strong></span>}
                       </div>
                       <span>{new Date(res.timestamp).toLocaleString()}</span>
                     </div>
                     {!res.success && (
-                      <p className="mt-3 text-xs text-red-600 bg-red-50 p-2 rounded-md">{res.errorMsg}</p>
+                      <p className="mt-3 text-xs text-red-600 bg-red-50 p-2 rounded-md whitespace-pre-wrap">{res.errorMsg}</p>
+                    )}
+                    {res.success && res.errorMsg && (
+                      <div className="mt-3 text-xs text-gray-600 bg-gray-100 p-2 rounded-md overflow-auto max-h-32">
+                        <pre>{res.errorMsg}</pre>
+                      </div>
                     )}
                   </li>
                 ))
