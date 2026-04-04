@@ -15,7 +15,6 @@ import (
 func RunTask(t models.Task) models.TaskResult {
 	res := models.TaskResult{
 		TaskID:    t.ID,
-		AgentID:   t.AgentID,
 		Timestamp: time.Now(),
 	}
 

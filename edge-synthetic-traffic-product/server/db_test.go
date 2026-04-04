@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgesynth/edgesynth/pkg/api"
 	"github.com/edgesynth/edgesynth/pkg/models"
 )
 
@@ -16,28 +15,8 @@ func TestDatabaseOperations(t *testing.T) {
 	}
 	defer db.Close()
 
-	// Test Agent Registration
-	req := api.RegisterRequest{Hostname: "test-host", OS: "linux"}
-	agentID, err := db.RegisterAgent(req, "127.0.0.1")
-	if err != nil {
-		t.Fatalf("Failed to register agent: %v", err)
-	}
-	if agentID == "" {
-		t.Fatal("Expected agentID, got empty string")
-	}
-
-	// Test Get Agents
-	agents, err := db.GetAllAgents()
-	if err != nil {
-		t.Fatalf("Failed to get agents: %v", err)
-	}
-	if len(agents) != 1 {
-		t.Fatalf("Expected 1 agent, got %d", len(agents))
-	}
-
 	// Test Create Task
 	task := models.Task{
-		AgentID: agentID,
 		Type:    models.TaskTypeHTTP,
 		Target:  "https://google.com",
 		Enabled: true,
@@ -48,7 +27,7 @@ func TestDatabaseOperations(t *testing.T) {
 	}
 
 	// Test Get Tasks
-	tasks, err := db.GetTasksForAgent(agentID)
+	tasks, err := db.GetEnabledTasks()
 	if err != nil {
 		t.Fatalf("Failed to get tasks: %v", err)
 	}
@@ -59,7 +38,6 @@ func TestDatabaseOperations(t *testing.T) {
 	// Test Insert Result
 	res := models.TaskResult{
 		TaskID:    tasks[0].ID,
-		AgentID:   agentID,
 		Timestamp: time.Now(),
 		Success:   true,
 		LatencyMs: 42.0,

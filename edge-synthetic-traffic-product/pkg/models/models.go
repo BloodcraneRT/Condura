@@ -2,16 +2,6 @@ package models
 
 import "time"
 
-// Agent represents a synthetic traffic agent running at the edge.
-type Agent struct {
-	ID        string    `json:"id"`
-	Hostname  string    `json:"hostname"`
-	OS        string    `json:"os"`
-	IP        string    `json:"ip"`
-	Status    string    `json:"status"` // online, offline
-	LastSeen  time.Time `json:"lastSeen"`
-}
-
 // Source represents a target for synthetic traffic (e.g. an IP or URL).
 type Source struct {
 	ID        string `json:"id"`
@@ -32,10 +22,9 @@ const (
 	TaskTypeUpload   TaskType = "upload"
 )
 
-// Task represents a synthetic traffic test assigned to an agent.
+// Task represents a synthetic traffic test.
 type Task struct {
 	ID       string   `json:"id"`
-	AgentID  string   `json:"agentId"`
 	Type     TaskType `json:"type"`
 	Target   string   `json:"target"`             // e.g., "8.8.8.8", "https://example.com"
 	Interval int      `json:"interval"`           // in seconds
@@ -47,7 +36,6 @@ type Task struct {
 type TaskResult struct {
 	ID          string    `json:"id"`
 	TaskID      string    `json:"taskId"`
-	AgentID     string    `json:"agentId"`
 	Timestamp   time.Time `json:"timestamp"`
 	Success     bool      `json:"success"`
 	LatencyMs   float64   `json:"latencyMs"`

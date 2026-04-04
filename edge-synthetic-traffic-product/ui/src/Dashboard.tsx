@@ -1,18 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
-interface Agent {
-  id: string;
-  hostname: string;
-  os: string;
-  ip: string;
-  status: string;
-  lastSeen: string;
-}
-
 interface Result {
   id: string;
   taskId: string;
-  agentId: string;
   timestamp: string;
   success: boolean;
   latencyMs: number;
@@ -28,15 +18,13 @@ interface Source {
   isDefault: boolean;
 }
 
-const API_URL = 'http://localhost:8080/api/v1';
+const API_URL = '/api/v1';
 
 export const Dashboard: React.FC = () => {
-  const [agents, setAgents] = useState<Agent[]>([]);
   const [results, setResults] = useState<Result[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
 
   // Task form state
-  const [selectedAgent, setSelectedAgent] = useState('');
   const [selectedType, setSelectedType] = useState('ping');
   const [selectedSource, setSelectedSource] = useState('');
 
@@ -45,11 +33,6 @@ export const Dashboard: React.FC = () => {
   const [newSourceTarget, setNewSourceTarget] = useState('');
 
   const fetchData = () => {
-    fetch(`${API_URL}/ui/agents`)
-      .then(res => res.json())
-      .then(data => setAgents(data))
-      .catch(console.error);
-
     fetch(`${API_URL}/ui/results`)
       .then(res => res.json())
       .then(data => setResults(data))
@@ -69,13 +52,12 @@ export const Dashboard: React.FC = () => {
 
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedAgent || !selectedSource) return;
+    if (!selectedSource) return;
 
     fetch(`${API_URL}/ui/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        agentId: selectedAgent,
         type: selectedType,
         target: selectedSource,
         interval: 10,
@@ -116,18 +98,6 @@ export const Dashboard: React.FC = () => {
           <div className="bg-white border border-gray-200 rounded-xl p-8">
             <h2 className="text-lg font-semibold mb-6 text-black tracking-tight">Schedule Task</h2>
             <form onSubmit={handleCreateTask} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">Agent</label>
-                <select
-                  className="block w-full border-gray-300 bg-gray-50 py-3 px-4 focus:outline-none focus:ring-0 focus:border-black sm:text-sm rounded-lg border"
-                  value={selectedAgent}
-                  onChange={(e) => setSelectedAgent(e.target.value)}
-                  required
-                >
-                  <option value="" disabled>Select an agent...</option>
-                  {agents.map(a => <option key={a.id} value={a.id}>{a.hostname} ({a.ip})</option>)}
-                </select>
-              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">Test Type</label>
                 <select
@@ -191,39 +161,6 @@ export const Dashboard: React.FC = () => {
                 Save Target
               </button>
             </form>
-          </div>
-        </div>
-
-        <div className="mb-12">
-          <h2 className="text-xl font-bold tracking-tight text-black mb-6">Active Agents</h2>
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <ul className="divide-y divide-gray-100">
-              {agents.length === 0 ? (
-                <li className="px-6 py-8 text-center text-sm text-gray-500">No agents connected. Start an agent to see it here.</li>
-              ) : (
-                agents.map(agent => (
-                  <li key={agent.id} className="px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" /></svg>
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900">{agent.hostname}</p>
-                        <p className="text-xs text-gray-500 mt-1">{agent.os} • {agent.ip}</p>
-                      </div>
-                    </div>
-                    <div className="mt-4 sm:mt-0 flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center">
-                      <p className="px-3 py-1 inline-flex text-[10px] uppercase tracking-wider font-bold rounded-md bg-green-50 text-green-700">
-                        {agent.status}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-2">
-                        Last seen: {new Date(agent.lastSeen).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </li>
-                ))
-              )}
-            </ul>
           </div>
         </div>
 

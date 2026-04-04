@@ -1,18 +1,22 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
+	"time"
 
-	"github.com/edgesynth/edgesynth/pkg/api"
 	"github.com/edgesynth/edgesynth/pkg/models"
 )
+
+//go:embed ui-dist/*
+var staticFS embed.FS
 
 var (
 	dbPath   string
@@ -34,14 +38,10 @@ func main() {
 	}
 	defer database.Close()
 
-	// API Routes for Agents
-	http.HandleFunc(api.RouteRegisterAgent, handleRegister)
-	http.HandleFunc(api.RouteHeartbeat, handleHeartbeat)
-	http.HandleFunc(api.RouteGetTasks, handleGetTasks)
-	http.HandleFunc(api.RouteSubmitResults, handleSubmitResults)
+	// Start internal task runner
+	go startTaskRunner(database)
 
 	// API Routes for UI
-	http.HandleFunc("/api/v1/ui/agents", handleUIAgents)
 	http.HandleFunc("/api/v1/ui/results", handleUIResults)
 	http.HandleFunc("/api/v1/ui/tasks", handleUITasks) // for creating tasks
 	http.HandleFunc("/api/v1/ui/sources", handleUISources) // for getting/creating sources
@@ -51,17 +51,37 @@ func main() {
 	http.HandleFunc("/api/v1/testdata/upload", handleUploadData)
 
 	// Serve Static UI
-	// Fallback to searching relative path if running from root dir
-	uiDir := "./server/ui-dist"
-	if _, err := os.Stat(uiDir); os.IsNotExist(err) {
-		uiDir = "./ui-dist"
+	// Serve directly from embedded FS
+	subFS, err := fs.Sub(staticFS, "ui-dist")
+	if err != nil {
+		log.Fatalf("Failed to initialize embedded UI: %v", err)
 	}
-	fs := http.FileServer(http.Dir(uiDir))
-	http.Handle("/", fs)
+	fileServer := http.FileServer(http.FS(subFS))
+	http.Handle("/", fileServer)
 
 	// Start server
 	addr := fmt.Sprintf(":%d", port)
 	log.Fatal(http.ListenAndServe(addr, enableCORS(http.DefaultServeMux)))
+}
+
+func startTaskRunner(db *DB) {
+	ticker := time.NewTicker(15 * time.Second)
+	for range ticker.C {
+		tasks, err := db.GetEnabledTasks()
+		if err != nil {
+			log.Printf("Failed to get tasks: %v", err)
+			continue
+		}
+		for _, task := range tasks {
+			go func(t models.Task) {
+				res := RunTask(t)
+				err := db.InsertResult(res)
+				if err != nil {
+					log.Printf("Failed to insert result for task %s: %v", t.ID, err)
+				}
+			}(task)
+		}
+	}
 }
 
 // enableCORS is a simple middleware to allow cross-origin requests for UI dev
@@ -77,101 +97,7 @@ func enableCORS(next http.Handler) http.HandlerFunc {
 	}
 }
 
-func handleRegister(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	var req api.RegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	ip := r.RemoteAddr
-	id, err := database.RegisterAgent(req, ip)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("Registered new agent: %s (%s)", req.Hostname, id)
-	json.NewEncoder(w).Encode(api.RegisterResponse{AgentID: id})
-}
-
-func handleHeartbeat(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	var req api.HeartbeatRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := database.UpdateHeartbeat(req.AgentID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
-
-func handleGetTasks(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	agentID := r.URL.Query().Get("agentId")
-	if agentID == "" {
-		http.Error(w, "Missing agentId", http.StatusBadRequest)
-		return
-	}
-
-	tasks, err := database.GetTasksForAgent(agentID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if tasks == nil {
-		tasks = []models.Task{}
-	}
-
-	json.NewEncoder(w).Encode(tasks)
-}
-
-func handleSubmitResults(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	var res models.TaskResult
-	if err := json.NewDecoder(r.Body).Decode(&res); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := database.InsertResult(res); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
-
 // UI Handlers
-
-func handleUIAgents(w http.ResponseWriter, r *http.Request) {
-	agents, err := database.GetAllAgents()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if agents == nil {
-		agents = []models.Agent{}
-	}
-	json.NewEncoder(w).Encode(agents)
-}
 
 func handleUIResults(w http.ResponseWriter, r *http.Request) {
 	results, err := database.GetRecentResults(100)
