@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptrace"
+	"os"
 	"os/exec"
 	"runtime"
 	"time"
@@ -61,6 +62,21 @@ func RunTask(t models.Task) models.TaskResult {
 		if err == nil {
 			// Overload ErrorMsg to store traceroute output if successful for UI display
 			res.ErrorMsg = output
+		}
+	case models.TaskTypePCAPReplay:
+		// Target is the URL of the PCAP
+		// Config is the network interface (e.g. eth0, lo)
+		iface := "lo"
+		if t.Config != "" {
+			iface = t.Config
+		}
+		var output string
+		output, err = runPCAPReplayTest(t.Target, iface)
+		if err == nil {
+			res.ErrorMsg = output
+		} else {
+			res.ErrorMsg = err.Error() + "\n" + output
+			err = fmt.Errorf("pcap replay failed")
 		}
 	default:
 		err = fmt.Errorf("unknown task type: %s", t.Type)
@@ -148,6 +164,48 @@ func runTracerouteTest(target string) (int, string, error) {
 	// For this edge tool, we'll store the raw output for the user to view.
 	// Assume successful execution means path traced.
 	return 0, output, err
+}
+
+func runPCAPReplayTest(targetURL string, iface string) (string, error) {
+	// Download PCAP
+	client := http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Get(targetURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to download pcap: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return "", fmt.Errorf("failed to download pcap, status: %d", resp.StatusCode)
+	}
+
+	tmpFile, err := os.CreateTemp("", "replay-*.pcap")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name()) // clean up
+
+	_, err = io.Copy(tmpFile, resp.Body)
+	tmpFile.Close()
+	if err != nil {
+		return "", fmt.Errorf("failed to write temp pcap: %v", err)
+	}
+
+	// Verify tcpreplay is installed
+	_, err = exec.LookPath("tcpreplay")
+	if err != nil {
+		return "tcpreplay is not installed on the system", fmt.Errorf("tcpreplay missing")
+	}
+
+	cmd := exec.Command("tcpreplay", "-i", iface, tmpFile.Name())
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	err = cmd.Run()
+	output := out.String()
+
+	return output, err
 }
 
 func runTCPTest(target string) error {

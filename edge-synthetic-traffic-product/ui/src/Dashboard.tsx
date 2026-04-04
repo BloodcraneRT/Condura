@@ -42,6 +42,7 @@ export const Dashboard: React.FC = () => {
   // Task form state
   const [selectedType, setSelectedType] = useState('ping');
   const [selectedSource, setSelectedSource] = useState('');
+  const [taskConfig, setTaskConfig] = useState(''); // Extra config like interface for PCAP
 
   // Source form state
   const [newSourceName, setNewSourceName] = useState('');
@@ -86,6 +87,7 @@ export const Dashboard: React.FC = () => {
         type: selectedType,
         target: selectedSource,
         interval: 10,
+        config: taskConfig,
         enabled: true
       })
     }).then(() => {
@@ -173,6 +175,7 @@ export const Dashboard: React.FC = () => {
                   <option value="traceroute">Traceroute (Path)</option>
                   <option value="download">Data Download</option>
                   <option value="upload">Data Upload</option>
+                  <option value="pcap_replay">PCAP Replay</option>
                 </select>
               </div>
               <div>
@@ -187,6 +190,18 @@ export const Dashboard: React.FC = () => {
                   {sources.map(s => <option key={s.id} value={s.target}>{s.name} ({s.target})</option>)}
                 </select>
               </div>
+              {selectedType === 'pcap_replay' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Network Interface (e.g., eth0)</label>
+                  <input
+                    type="text"
+                    placeholder="eth0"
+                    className="block w-full border-gray-300 bg-gray-50 py-3 px-4 focus:outline-none focus:ring-0 focus:border-black sm:text-sm rounded-lg border"
+                    value={taskConfig}
+                    onChange={(e) => setTaskConfig(e.target.value)}
+                  />
+                </div>
+              )}
               <button type="submit" className="w-full mt-2 justify-center py-3 px-4 text-sm font-semibold rounded-lg text-white bg-black hover:bg-gray-900 transition-colors">
                 Run Task
               </button>

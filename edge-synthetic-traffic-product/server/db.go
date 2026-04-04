@@ -50,6 +50,7 @@ func initDB(connStr string) (*DB, error) {
 			{ID: uuid.New().String(), Name: "Random User API", Target: "https://randomuser.me/api/", IsDefault: true},
 			{ID: uuid.New().String(), Name: "GitHub API Status", Target: "https://api.github.com/zen", IsDefault: true},
 			{ID: uuid.New().String(), Name: "CoinDesk Bitcoin Price", Target: "https://api.coindesk.com/v1/bpi/currentprice.json", IsDefault: true},
+			{ID: uuid.New().String(), Name: "Sample PCAP (FlowTest)", Target: "https://raw.githubusercontent.com/CESNET/FlowTest/master/test/testbed/generator/templates/pcap/dns.pcap", IsDefault: true},
 		}
 		for _, s := range defaultSources {
 			db.Exec(`INSERT INTO sources (id, name, target, is_default) VALUES (?, ?, ?, ?)`,

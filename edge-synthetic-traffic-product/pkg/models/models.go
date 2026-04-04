@@ -22,6 +22,7 @@ const (
 	TaskTypeUpload     TaskType = "upload"
 	TaskTypeDNS        TaskType = "dns"
 	TaskTypeTraceroute TaskType = "traceroute"
+	TaskTypePCAPReplay TaskType = "pcap_replay"
 )
 
 // Task represents a synthetic traffic test.
