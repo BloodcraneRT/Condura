@@ -6,7 +6,7 @@ import (
 
 	"github.com/edgesynth/edgesynth/pkg/models"
 	"github.com/google/uuid"
-	_ "github.com/lib/pq"
+	_ "github.com/ClickHouse/clickhouse-go/v2"
 )
 
 type DB struct {
@@ -14,53 +14,29 @@ type DB struct {
 }
 
 func initDB(connStr string) (*DB, error) {
-	db, err := sql.Open("postgres", connStr)
+	db, err := sql.Open("clickhouse", connStr)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create tables
-	schema := `
-	CREATE TABLE IF NOT EXISTS tasks (
-		id TEXT PRIMARY KEY,
-		type TEXT,
-		target TEXT,
-		interval INTEGER,
-		config TEXT,
-		enabled BOOLEAN
-	);
-	CREATE TABLE IF NOT EXISTS results (
-		id TEXT,
-		task_id TEXT,
-		timestamp TIMESTAMPTZ NOT NULL,
-		success BOOLEAN,
-		latency_ms DOUBLE PRECISION,
-		error_msg TEXT,
-		bytes_sent BIGINT DEFAULT 0,
-		bytes_recv BIGINT DEFAULT 0
-	);
-	CREATE TABLE IF NOT EXISTS sources (
-		id TEXT PRIMARY KEY,
-		name TEXT,
-		target TEXT,
-		is_default BOOLEAN
-	);
-	`
-	_, err = db.Exec(schema)
-	if err != nil {
-		return nil, fmt.Errorf("failed creating schema: %w", err)
+	// Clickhouse go driver doesn't support executing multiple statements at once in a single db.Exec.
+	// Split by semicolon.
+	statements := []string{
+		`CREATE TABLE IF NOT EXISTS tasks (id String, type String, target String, interval Int32, config String, enabled Bool) ENGINE = ReplacingMergeTree() ORDER BY id;`,
+		`CREATE TABLE IF NOT EXISTS results (id String, task_id String, timestamp DateTime, success Bool, latency_ms Float64, error_msg String, bytes_sent Int64 DEFAULT 0, bytes_recv Int64 DEFAULT 0) ENGINE = MergeTree() ORDER BY (timestamp, task_id);`,
+		`CREATE TABLE IF NOT EXISTS sources (id String, name String, target String, is_default Bool) ENGINE = ReplacingMergeTree() ORDER BY id;`,
 	}
 
-	// Convert results table to TimescaleDB hypertable if not already done
-	_, err = db.Exec(`SELECT create_hypertable('results', 'timestamp', if_not_exists => TRUE);`)
-	if err != nil {
-		// Just log, as TimescaleDB extension might not be present if running plain Postgres
-		fmt.Printf("Warning: failed to create hypertable for results (ensure TimescaleDB is installed): %v\n", err)
+	for _, stmt := range statements {
+		_, err = db.Exec(stmt)
+		if err != nil {
+			return nil, fmt.Errorf("failed creating schema with stmt %s: %w", stmt, err)
+		}
 	}
 
 	// Seed default sources if table is empty
-	var count int
-	db.QueryRow(`SELECT COUNT(*) FROM sources`).Scan(&count)
+	var count uint64
+	db.QueryRow(`SELECT count() FROM sources`).Scan(&count)
 	if count == 0 {
 		defaultSources := []models.Source{
 			{ID: uuid.New().String(), Name: "Google DNS", Target: "8.8.8.8", IsDefault: true},
@@ -72,7 +48,7 @@ func initDB(connStr string) (*DB, error) {
 			{ID: uuid.New().String(), Name: "Public PokeAPI", Target: "https://pokeapi.co/api/v2/pokemon/ditto", IsDefault: true},
 		}
 		for _, s := range defaultSources {
-			db.Exec(`INSERT INTO sources (id, name, target, is_default) VALUES ($1, $2, $3, $4)`,
+			db.Exec(`INSERT INTO sources (id, name, target, is_default) VALUES (?, ?, ?, ?)`,
 				s.ID, s.Name, s.Target, s.IsDefault)
 		}
 	}
@@ -101,13 +77,13 @@ func (db *DB) GetEnabledTasks() ([]models.Task, error) {
 
 func (db *DB) InsertResult(r models.TaskResult) error {
 	id := uuid.New().String()
-	_, err := db.Exec(`INSERT INTO results (id, task_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+	_, err := db.Exec(`INSERT INTO results (id, task_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		id, r.TaskID, r.Timestamp, r.Success, r.LatencyMs, r.ErrorMsg, r.BytesSent, r.BytesRecv)
 	return err
 }
 
 func (db *DB) GetRecentResults(limit int) ([]models.TaskResult, error) {
-	rows, err := db.Query(`SELECT id, task_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv FROM results ORDER BY timestamp DESC LIMIT $1`, limit)
+	rows, err := db.Query(`SELECT id, task_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv FROM results ORDER BY timestamp DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +105,7 @@ func (db *DB) CreateTask(t models.Task) error {
 	if t.ID == "" {
 		t.ID = uuid.New().String()
 	}
-	_, err := db.Exec(`INSERT INTO tasks (id, type, target, interval, config, enabled) VALUES ($1, $2, $3, $4, $5, $6)`,
+	_, err := db.Exec(`INSERT INTO tasks (id, type, target, interval, config, enabled) VALUES (?, ?, ?, ?, ?, ?)`,
 		t.ID, t.Type, t.Target, t.Interval, t.Config, t.Enabled)
 	return err
 }
@@ -157,7 +133,7 @@ func (db *DB) CreateSource(s models.Source) error {
 	if s.ID == "" {
 		s.ID = uuid.New().String()
 	}
-	_, err := db.Exec(`INSERT INTO sources (id, name, target, is_default) VALUES ($1, $2, $3, $4)`,
+	_, err := db.Exec(`INSERT INTO sources (id, name, target, is_default) VALUES (?, ?, ?, ?)`,
 		s.ID, s.Name, s.Target, s.IsDefault)
 	return err
 }

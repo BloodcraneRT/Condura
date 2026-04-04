@@ -5,14 +5,14 @@ EdgeSynth is a polished, multi-platform product for synthetic traffic generation
 It is distributed as a **single standalone binary** that includes the web dashboard and internal task execution.
 
 ## Features
-- **Standalone Binary**: Run it anywhere (Linux, Windows, macOS). Relies on a PostgreSQL / TimescaleDB backend.
+- **Standalone Binary**: Run it anywhere (Linux, Windows, macOS). Relies on a ClickHouse backend.
 - **Synthetic Testing**: HTTP latency checks, TCP connection tests, UDP payload tests, and heavy Data Uploads / Downloads (up to GBs).
 - **Target Sources**: Target predefined open APIs (like JSONPlaceholder, PokeAPI), loopback data endpoints for load testing, or add your own custom targets.
 - **Modern Dashboard**: Beautiful React/Tailwind UI to schedule tests and view results in real-time.
-- **TimescaleDB Integration**: Uses TimescaleDB hypertables under the hood for massive scalability of synthetic traffic results.
+- **ClickHouse Integration**: Uses ClickHouse `MergeTree` engines for blistering fast analytical inserts and reads of testing results.
 
 ## Architecture
-1. The **EdgeSynth** application starts up, initializes its local database, and serves the API + Web UI.
+1. The **EdgeSynth** application starts up, connects to ClickHouse, and serves the API + Web UI.
 2. An internal background runner routinely polls the database for scheduled synthetic tasks.
 3. It natively executes the network tests and stores latency, success state, and throughput (Bytes Downloaded/Uploaded) back into the database.
 
@@ -33,19 +33,19 @@ Binaries will be output in the `bin/` directory.
 
 ## Running
 
-1. **Start TimescaleDB**
+1. **Start ClickHouse**
 ```bash
-docker run -d --name timescaledb -p 5432:5432 -e POSTGRES_PASSWORD=password timescale/timescaledb:latest-pg14
+docker run -d --name clickhouse-server --ulimit nofile=262144:262144 -p 8123:8123 -p 9000:9000 clickhouse/clickhouse-server
 ```
 
 2. **Start EdgeSynth**
 ```bash
-# Uses default Postgres connection string localhost:5432
+# Uses default ClickHouse connection string clickhouse://localhost:9000
 ./bin/edgesynth-linux-amd64 --port 8080
 ```
 Open your browser to `http://localhost:8080` to view the dashboard and schedule tasks.
 
 Optionally, you can override the database URL using the `DATABASE_URL` environment variable or the `--db` flag:
 ```bash
-DATABASE_URL="postgres://user:pass@host:5432/dbname?sslmode=disable" ./bin/edgesynth-linux-amd64
+DATABASE_URL="clickhouse://default:@host:9000/default" ./bin/edgesynth-linux-amd64
 ```

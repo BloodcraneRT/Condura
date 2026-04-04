@@ -28,9 +28,9 @@ var (
 func main() {
 	defaultConnStr := os.Getenv("DATABASE_URL")
 	if defaultConnStr == "" {
-		defaultConnStr = "postgres://postgres:password@localhost:5432/postgres?sslmode=disable"
+		defaultConnStr = "clickhouse://default:@localhost:9000/default?dial_timeout=10s&read_timeout=20s"
 	}
-	flag.StringVar(&connStr, "db", defaultConnStr, "PostgreSQL connection string")
+	flag.StringVar(&connStr, "db", defaultConnStr, "ClickHouse connection string")
 	flag.IntVar(&port, "port", 8080, "Port to run server on")
 	flag.Parse()
 
