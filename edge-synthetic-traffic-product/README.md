@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🚀 EdgeSynth</h1>
+  <h1>EdgeSynth</h1>
   <p><b>A modern, standalone synthetic traffic generator and network observability platform.</b></p>
   <img src="architecture.svg" alt="Architecture Diagram" width="800"/>
 </div>
@@ -8,15 +8,16 @@
 
 ## What is EdgeSynth?
 
-EdgeSynth is a polished, multi-platform product for synthetic traffic generation and monitoring. Think of it as a modernized, distributed **iperf**, **Cisco TRex**, or **Kentik Synthetics** system built specifically to run natively as a single executable on edge networks.
+EdgeSynth is an enterprise-grade, multi-platform solution for synthetic traffic generation and continuous network monitoring. Designed as a distributed, high-performance alternative to traditional tools (such as iperf, Cisco TRex, or Kentik Synthetics), EdgeSynth is built specifically to run natively as a single executable on edge network nodes.
 
-Instead of managing complex server-agent relationships, **EdgeSynth is self-contained**. You drop the binary on any machine, and it instantly serves a beautiful React/Tailwind dashboard while seamlessly spinning up Go routines to test, measure, and record synthetic traffic metrics against local or global targets.
+Instead of managing complex, decoupled server-agent relationships, **EdgeSynth is entirely self-contained**. Deploying the single binary on any host immediately provisions a React-based observability dashboard while concurrently launching internal Go routines to execute, measure, and record synthetic network telemetry against designated local or global targets.
 
 ## Why EdgeSynth?
 
-* **No Deployment Headaches:** It's distributed as a **single standalone binary**. Pure Go. Embedded React UI. No Node.js, Python, or complex runtimes required on the host.
-* **Modern Observability:** Built with a clean, high-contrast UI (inspired by Airbnb and ThousandEyes design systems). It calculates Time To First Byte (TTFB), DNS resolution speeds, network path hops, and connection timings.
-* **Massive Data Scale:** Whether you need to simulate a 1KB JSON payload or heavily saturate a link with a **10GB data download**, EdgeSynth handles it safely via memory-optimized stream discarding. Results are dumped into **ClickHouse** (`MergeTree` engine) for blistering fast analytical reads.
+* **Zero-Dependency Deployment:** Distributed as a single, statically compiled Go binary with an embedded React user interface. No external runtimes (Node.js, Python, JVM) or complex configurations are required on the host machine.
+* **Granular Network Observability:** Calculates deep lifecycle metrics including Time To First Byte (TTFB), DNS resolution latency, network path hops via ICMP/UDP tracing, and raw TCP/HTTP connection timings.
+* **High-Throughput Synthetic Loads:** Capable of simulating micro-payloads (JSON REST calls) or saturating network links with gigabyte-scale data transfers (up to 5GB per test). Throughput is safely handled via memory-optimized stream discarding to prevent host resource exhaustion.
+* **High-Performance Analytics:** Telemetry data is natively written to **ClickHouse** leveraging `MergeTree` storage engines, ensuring blistering fast analytical read performance and scalable timeseries retention.
 
 <br/>
 <div align="center">
@@ -24,16 +25,28 @@ Instead of managing complex server-agent relationships, **EdgeSynth is self-cont
 </div>
 <br/>
 
-## Key Features
+## Network Performance Visualization
+
+EdgeSynth tracks high-frequency data and can aggregate performance directly from ClickHouse, easily integrating with any observability stack (like Grafana) or its own dashboard.
+
+<div align="center">
+  <img src="latency_chart.png" alt="Latency Over Time Chart" width="800"/>
+  <br/>
+  <br/>
+  <img src="throughput_chart.png" alt="Throughput Bar Chart" width="800"/>
+</div>
+<br/>
+
+## Key Capabilities
 
 | Feature | Description |
 | :--- | :--- |
-| 🗄️ **ClickHouse Backend** | Uses ClickHouse `MergeTree` engines for highly efficient timeseries inserts and aggregations. |
-| 🌐 **HTTP & DNS Tracing** | Detailed lifecycle metrics (TTFB, DNS time, Connection overhead) mimicking enterprise tools. |
-| 📡 **Network Path Tracing** | Native OS-level Traceroute executions to capture routing hops and path statuses directly from the edge. |
-| 📦 **Gigabyte Payloads** | Dedicated HTTP endpoints to generate and absorb arbitrary sizes of synthetic data up to 5GB per test. |
-| 🕵️‍♂️ **PCAP Replay** | Replay network traffic directly via `tcpreplay` over specific interfaces (e.g. `eth0`) based on `CESNET/FlowTest`. |
-| ✨ **Embedded UI** | Zero-config modern dashboard served directly from the Go binary via `go:embed`. |
+| **ClickHouse Backend** | Utilizes ClickHouse `MergeTree` engines for highly efficient timeseries metric insertions and aggregations at scale. |
+| **HTTP & DNS Tracing** | Captures detailed lifecycle telemetry (TTFB, DNS resolution time, Connection overhead) mimicking enterprise observability platforms. |
+| **Network Path Discovery** | Executes native OS-level traceroute commands to capture routing hops and intermediate path statuses directly from the edge. |
+| **Gigabyte Payloads** | Provides dedicated HTTP endpoints to generate and absorb arbitrary sizes of synthetic data to test network saturation and throughput limitations. |
+| **PCAP Replay** | Replays captured network traffic profiles directly via `tcpreplay` over specific host interfaces (e.g. `eth0`), inspired by `CESNET/FlowTest`. |
+| **Embedded Interface** | Features a zero-configuration, modern React dashboard served directly from the compiled Go binary memory space via `go:embed`. |
 
 ## Architecture Overview
 1. The **EdgeSynth** application starts up, connects to your ClickHouse instance, and serves the API + Web UI.
