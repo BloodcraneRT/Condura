@@ -1,0 +1,3 @@
+## 2025-02-14 - Interactive element accessibility in hover-only UIs
+**Learning:** Actions that appear only on hover (like the "Delete" button for tasks) become invisible/inaccessible to keyboard-only users unless specific focus states are added. Adding `focus-visible:opacity-100` alongside `group-hover:opacity-100` ensures keyboard users can see what they are about to activate. Also, form fields need explicit `id` and `htmlFor` attributes to be properly announced by screen readers.
+**Action:** Always test hover-based interactions with keyboard navigation (tabbing). Add explicit `id` and `htmlFor` linkages on all new forms.
