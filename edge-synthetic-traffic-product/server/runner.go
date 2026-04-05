@@ -17,6 +17,23 @@ import (
 	"github.com/edgesynth/edgesynth/pkg/models"
 )
 
+var (
+	uploadPayload []byte
+	bertPayload   []byte
+)
+
+func init() {
+	uploadPayload = make([]byte, 10*1024*1024)
+	for i := range uploadPayload {
+		uploadPayload[i] = 'B'
+	}
+
+	bertPayload = make([]byte, 1024*1024)
+	for i := range bertPayload {
+		bertPayload[i] = byte((i * 13) % 256)
+	}
+}
+
 // RunTask executes the synthetic task based on its type.
 func RunTask(t models.Task) models.TaskResult {
 	res := models.TaskResult{
@@ -386,21 +403,14 @@ func runBERTTest(target string, ber *float64) error {
 	}
 	defer conn.Close()
 
-	// Generate a known Pseudo-Random Binary Sequence (PRBS-like)
-	size := 1024 * 1024 // 1 MB payload
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = byte((i * 13) % 256) // Deterministic pattern
-	}
-
-	// Send payload
-	_, err = conn.Write(payload)
+	// Send globally initialized PRBS-like payload
+	_, err = conn.Write(bertPayload)
 	if err != nil {
 		return fmt.Errorf("BERT send failed: %w", err)
 	}
 
 	// Read echoed payload
-	recvPayload := make([]byte, size)
+	recvPayload := make([]byte, len(bertPayload))
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
 	n, err := io.ReadFull(conn, recvPayload)
 	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
@@ -411,7 +421,7 @@ func runBERTTest(target string, ber *float64) error {
 	var bitErrors int
 	totalBits := n * 8
 	for i := 0; i < n; i++ {
-		xor := payload[i] ^ recvPayload[i]
+		xor := bertPayload[i] ^ recvPayload[i]
 		for j := 0; j < 8; j++ {
 			if (xor & (1 << j)) != 0 {
 				bitErrors++
@@ -449,14 +459,8 @@ func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
-
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	// Use globally pre-allocated 10MB dummy payload
+	req, err := http.NewRequest("POST", target, bytes.NewReader(uploadPayload))
 	if err != nil {
 		return 0, err
 	}
@@ -472,5 +476,5 @@ func runUploadTest(target string) (int64, error) {
 		return 0, fmt.Errorf("HTTP status: %d", resp.StatusCode)
 	}
 
-	return int64(size), nil
+	return int64(len(uploadPayload)), nil
 }
