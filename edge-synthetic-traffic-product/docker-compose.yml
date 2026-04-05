@@ -1,0 +1,41 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse-server
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+
+  condura:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: condura
+    ports:
+      - "8080:8080"
+    environment:
+      # Explicitly use the clickhouse service name for the connection
+      - DATABASE_URL=clickhouse://default:@clickhouse:9000/default?dial_timeout=10s&read_timeout=20s
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    # Using host network could be useful for packet capturing but bridge is standard for most apps
+    # network_mode: "host"
+    # capability needed for raw sockets in ping / traceroute / tcpreplay
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+volumes:
+  clickhouse-data:

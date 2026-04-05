@@ -58,11 +58,29 @@ EdgeSynth tracks high-frequency data and can aggregate performance directly from
 | **Embedded Interface** | Features a zero-configuration, modern React dashboard served directly from the compiled Go binary memory space via `go:embed`. |
 
 ## Architecture Overview
-1. The **EdgeSynth** application starts up, connects to your ClickHouse instance, and serves the API + Web UI.
+1. The **EdgeSynth** (Condura) application starts up, connects to your ClickHouse instance, and serves the API + Web UI.
 2. The UI lets you configure new "Sources" (e.g. your production API, Github, or a 5GB loopback download).
 3. You schedule tasks (Ping, TCP, Web Load, Traceroute, PCAP Replay).
 4. An internal Go routine routinely polls the database for scheduled synthetic tasks and executes them asynchronously.
 5. It natively executes the network tests and stores latency, success state, and throughput (Bytes Downloaded/Uploaded) back into ClickHouse.
+
+---
+
+## Running via Docker Compose (Recommended)
+
+EdgeSynth includes a `docker-compose.yml` file to quickly roll up the Condura agent and the ClickHouse database into one install package. This is the easiest way to get started.
+
+```bash
+docker compose up -d
+```
+
+This will:
+1. Start the ClickHouse database on ports `8123` and `9000`.
+2. Wait for ClickHouse to become healthy.
+3. Build and start the `condura` agent (the EdgeSynth application) on port `8080`.
+
+**Testing the Setup:**
+Open your browser to `http://localhost:8080` to view the dashboard and schedule tasks. You can verify the components are running correctly by successfully creating and executing a task. The metrics should appear in the UI and be stored in the ClickHouse instance.
 
 ---
 
@@ -84,7 +102,7 @@ Binaries will be output in the `bin/` directory.
 
 ---
 
-## Running EdgeSynth
+## Running EdgeSynth Manually
 
 ### 1. Start ClickHouse
 EdgeSynth requires ClickHouse to store its metrics. You can run it locally via Docker:
