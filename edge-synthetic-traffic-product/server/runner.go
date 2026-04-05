@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -77,6 +78,18 @@ func RunTask(t models.Task) models.TaskResult {
 		} else {
 			res.ErrorMsg = err.Error() + "\n" + output
 			err = fmt.Errorf("pcap replay failed")
+		}
+	case models.TaskTypeOstinato:
+		var cfg models.OstinatoConfig
+		if t.Config != "" {
+			err = json.Unmarshal([]byte(t.Config), &cfg)
+		}
+		if err == nil {
+			var bSent int64
+			var output string
+			bSent, output, err = runOstinatoStream(t.Target, cfg)
+			res.BytesSent = bSent
+			res.ErrorMsg = output
 		}
 	default:
 		err = fmt.Errorf("unknown task type: %s", t.Type)
@@ -215,6 +228,61 @@ func runTCPTest(target string) error {
 	}
 	conn.Close()
 	return nil
+}
+
+func runOstinatoStream(target string, cfg models.OstinatoConfig) (int64, string, error) {
+	// Defaults
+	proto := "udp"
+	if cfg.Protocol == "tcp" {
+		proto = "tcp"
+	}
+	packetSize := 512
+	if cfg.PacketSize > 0 {
+		packetSize = cfg.PacketSize
+	}
+	pps := 100
+	if cfg.PPS > 0 {
+		pps = cfg.PPS
+	}
+	duration := 5
+	if cfg.Duration > 0 {
+		duration = cfg.Duration
+	}
+
+	conn, err := net.DialTimeout(proto, target, 5*time.Second)
+	if err != nil {
+		return 0, "", err
+	}
+	defer conn.Close()
+
+	payload := make([]byte, packetSize)
+	// fill with junk
+	for i := range payload {
+		payload[i] = byte(i % 256)
+	}
+
+	ticker := time.NewTicker(time.Second / time.Duration(pps))
+	defer ticker.Stop()
+
+	timer := time.NewTimer(time.Duration(duration) * time.Second)
+	defer timer.Stop()
+
+	var bytesSent int64
+	var packetsSent int
+
+	for {
+		select {
+		case <-timer.C:
+			return bytesSent, fmt.Sprintf("Streamed %d packets (%s) over %d seconds", packetsSent, proto, duration), nil
+		case <-ticker.C:
+			n, err := conn.Write(payload)
+			if err != nil {
+				return bytesSent, fmt.Sprintf("Stream aborted early. Sent %d packets (%s)", packetsSent, proto), err
+			}
+			bytesSent += int64(n)
+			packetsSent++
+		}
+	}
 }
 
 func runUDPTest(target string) error {

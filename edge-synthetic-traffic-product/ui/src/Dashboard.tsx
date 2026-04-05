@@ -176,6 +176,7 @@ export const Dashboard: React.FC = () => {
                   <option value="download">Data Download</option>
                   <option value="upload">Data Upload</option>
                   <option value="pcap_replay">PCAP Replay</option>
+                  <option value="ostinato">Traffic Stream (Ostinato)</option>
                 </select>
               </div>
               <div>
@@ -197,6 +198,18 @@ export const Dashboard: React.FC = () => {
                     type="text"
                     placeholder="eth0"
                     className="block w-full border-gray-200 bg-white py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-xl border shadow-sm transition-shadow"
+                    value={taskConfig}
+                    onChange={(e) => setTaskConfig(e.target.value)}
+                  />
+                </div>
+              )}
+              {selectedType === 'ostinato' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Ostinato Stream Config (JSON)</label>
+                  <textarea
+                    placeholder={'{\n  "protocol": "udp",\n  "packetSize": 512,\n  "pps": 100,\n  "duration": 5\n}'}
+                    className="block w-full border-gray-200 bg-white py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-xl border shadow-sm transition-shadow"
+                    rows={5}
                     value={taskConfig}
                     onChange={(e) => setTaskConfig(e.target.value)}
                   />
