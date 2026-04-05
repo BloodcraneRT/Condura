@@ -25,7 +25,21 @@ var (
 	connStr  string
 	port     int
 	database *DB
+
+	// Pre-allocated buffers for download endpoints to prevent high allocation
+	// overhead on concurrent high-throughput tests.
+	downloadChunkJSON []byte
+	downloadChunkBin  []byte
 )
+
+func init() {
+	downloadChunkJSON = make([]byte, 1024*1024)
+	for i := range downloadChunkJSON {
+		downloadChunkJSON[i] = 'A'
+	}
+	downloadChunkBin = make([]byte, 4*1024*1024)
+	// Default zero-value (0x00) is fine for binary stream
+}
 
 func main() {
 	defaultConnStr := os.Getenv("DATABASE_URL")
@@ -288,19 +302,15 @@ func handleDownloadData(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"data":"`))
 
-		// Write dummy A's to fill size
 		remaining := sizeBytes - 12
-		chunkSize := int64(1024 * 1024)
-		chunk := make([]byte, chunkSize)
-		for i := range chunk {
-			chunk[i] = 'A'
-		}
+		chunkSize := int64(len(downloadChunkJSON))
+
 		for remaining > 0 {
 			writeSize := remaining
 			if writeSize > chunkSize {
 				writeSize = chunkSize
 			}
-			w.Write(chunk[:writeSize])
+			w.Write(downloadChunkJSON[:writeSize])
 			remaining -= writeSize
 		}
 		w.Write([]byte(`"}`))
@@ -309,8 +319,7 @@ func handleDownloadData(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Content-Length", strconv.FormatInt(sizeBytes, 10))
 
-		chunkSize := int64(4 * 1024 * 1024) // 4MB chunks
-		chunk := make([]byte, chunkSize)
+		chunkSize := int64(len(downloadChunkBin))
 		remaining := sizeBytes
 
 		for remaining > 0 {
@@ -318,7 +327,7 @@ func handleDownloadData(w http.ResponseWriter, r *http.Request) {
 			if writeSize > chunkSize {
 				writeSize = chunkSize
 			}
-			_, err := w.Write(chunk[:writeSize])
+			_, err := w.Write(downloadChunkBin[:writeSize])
 			if err != nil {
 				// Client likely disconnected
 				break

@@ -17,6 +17,19 @@ import (
 	"github.com/edgesynth/edgesynth/pkg/models"
 )
 
+var (
+	// uploadPayload is a pre-allocated 10MB payload used for synthetic upload tests.
+	// Pre-allocating this avoids massive GC overhead and memory churn during frequent tests.
+	uploadPayload []byte
+)
+
+func init() {
+	uploadPayload = make([]byte, 10*1024*1024)
+	for i := range uploadPayload {
+		uploadPayload[i] = 'B'
+	}
+}
+
 // RunTask executes the synthetic task based on its type.
 func RunTask(t models.Task) models.TaskResult {
 	res := models.TaskResult{
@@ -449,14 +462,10 @@ func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
+	// Use pre-allocated dummy 10MB payload to avoid allocation overhead on each test.
+	size := len(uploadPayload)
 
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	req, err := http.NewRequest("POST", target, bytes.NewReader(uploadPayload))
 	if err != nil {
 		return 0, err
 	}
