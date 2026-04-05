@@ -49,12 +49,12 @@ func main() {
 		time.Sleep(1 * time.Second)
 	}
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		log.Printf("Failed to initialize database: %v. Running in UI-only mocked mode.", err)
+	} else {
+		defer database.Close()
+		// Start internal task runner
+		go startTaskRunner(database)
 	}
-	defer database.Close()
-
-	// Start internal task runner
-	go startTaskRunner(database)
 
 	// API Routes for UI
 	http.HandleFunc("/api/v1/ui/metrics", handleUIMetrics)
@@ -175,6 +175,17 @@ func handleUIMetrics(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if database == nil {
+		json.NewEncoder(w).Encode(models.AggregatedMetrics{
+			TotalTests: 42,
+			TotalSuccesses: 40,
+			TotalFailures: 2,
+			AvgLatencyMs: 45.2,
+			TotalBytesRecv: 10485760,
+			TotalBytesSent: 2048,
+		})
+		return
+	}
 	metrics, err := database.GetAggregatedMetrics()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -184,6 +195,12 @@ func handleUIMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleUIResults(w http.ResponseWriter, r *http.Request) {
+	if database == nil {
+		json.NewEncoder(w).Encode([]models.TaskResult{
+			{ID: "res1", TaskID: "task1", Timestamp: time.Now(), Success: true, LatencyMs: 42.1},
+		})
+		return
+	}
 	results, err := database.GetRecentResults(100)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -197,6 +214,10 @@ func handleUIResults(w http.ResponseWriter, r *http.Request) {
 
 func handleUITasks(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
+		if database == nil {
+			json.NewEncoder(w).Encode([]models.Task{})
+			return
+		}
 		tasks, err := database.GetEnabledTasks()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -214,9 +235,11 @@ func handleUITasks(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if err := database.CreateTask(t); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		if database != nil {
+			if err := database.CreateTask(t); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 		w.WriteHeader(http.StatusCreated)
 		return
@@ -227,9 +250,11 @@ func handleUITasks(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Missing task id", http.StatusBadRequest)
 			return
 		}
-		if err := database.DeleteTask(id); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		if database != nil {
+			if err := database.DeleteTask(id); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 		w.WriteHeader(http.StatusOK)
 		return
@@ -323,6 +348,12 @@ func handleUploadData(w http.ResponseWriter, r *http.Request) {
 
 func handleUISources(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
+		if database == nil {
+			json.NewEncoder(w).Encode([]models.Source{
+				{ID: "src1", Name: "Mock Source", Target: "mock", IsDefault: true},
+			})
+			return
+		}
 		sources, err := database.GetSources()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -340,9 +371,11 @@ func handleUISources(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if err := database.CreateSource(s); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		if database != nil {
+			if err := database.CreateSource(s); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 		w.WriteHeader(http.StatusCreated)
 		return

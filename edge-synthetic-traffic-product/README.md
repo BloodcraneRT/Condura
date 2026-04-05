@@ -25,6 +25,15 @@ Instead of managing complex, decoupled server-agent relationships, **EdgeSynth i
 </div>
 <br/>
 
+## Dashboard Interface
+
+EdgeSynth features a clean, high-contrast, modern UI directly embedded inside the compiled Go binary.
+
+<div align="center">
+  <img src="dashboard.png" alt="EdgeSynth Dashboard" width="800"/>
+</div>
+<br/>
+
 ## Network Performance Visualization
 
 EdgeSynth tracks high-frequency data and can aggregate performance directly from ClickHouse, easily integrating with any observability stack (like Grafana) or its own dashboard.
