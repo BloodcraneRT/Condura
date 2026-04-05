@@ -1,0 +1,3 @@
+## 2024-11-20 - Invisible Task Delete Buttons
+**Learning:** Found a common pattern in the UI where destructive actions (like delete buttons) were visually hidden using `opacity-0` and only shown on `group-hover`. This is a severe accessibility issue because keyboard-only and screen reader users cannot focus or discover the element when tabbing through the interface.
+**Action:** Always ensure that visually hidden interactive elements have `focus:opacity-100` and focus rings (`focus:ring-2`, etc.) so they appear when receiving keyboard focus. Furthermore, always add an `aria-label` to icon-only or vaguely labeled buttons to explain the action.
