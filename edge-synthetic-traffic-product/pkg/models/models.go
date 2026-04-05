@@ -24,6 +24,8 @@ const (
 	TaskTypeTraceroute TaskType = "traceroute"
 	TaskTypePCAPReplay TaskType = "pcap_replay"
 	TaskTypeOstinato   TaskType = "ostinato"
+	TaskTypeBERT       TaskType = "bert"
+	TaskTypeRFC2544    TaskType = "rfc2544"
 )
 
 // Task represents a synthetic traffic test.
@@ -51,6 +53,8 @@ type TaskResult struct {
 	DNSTimeMs     float64   `json:"dnsTimeMs,omitempty"`
 	ConnectTimeMs float64   `json:"connectTimeMs,omitempty"`
 	Hops          int       `json:"hops,omitempty"`
+	JitterMs      float64   `json:"jitterMs,omitempty"`
+	BitErrorRate  float64   `json:"bitErrorRate,omitempty"`
 }
 
 // OstinatoConfig defines the parameters for a traffic stream test.

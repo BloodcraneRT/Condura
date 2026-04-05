@@ -23,7 +23,7 @@ func initDB(connStr string) (*DB, error) {
 	// Split by semicolon.
 	statements := []string{
 		`CREATE TABLE IF NOT EXISTS tasks (id String, type String, target String, interval Int32, config String, enabled Bool) ENGINE = ReplacingMergeTree() ORDER BY id;`,
-		`CREATE TABLE IF NOT EXISTS results (id String, task_id String, timestamp DateTime, success Bool, latency_ms Float64, error_msg String, bytes_sent Int64 DEFAULT 0, bytes_recv Int64 DEFAULT 0, ttfb_ms Float64 DEFAULT 0.0, dns_time_ms Float64 DEFAULT 0.0, connect_time_ms Float64 DEFAULT 0.0, hops Int32 DEFAULT 0) ENGINE = MergeTree() ORDER BY (timestamp, task_id);`,
+		`CREATE TABLE IF NOT EXISTS results (id String, task_id String, timestamp DateTime, success Bool, latency_ms Float64, error_msg String, bytes_sent Int64 DEFAULT 0, bytes_recv Int64 DEFAULT 0, ttfb_ms Float64 DEFAULT 0.0, dns_time_ms Float64 DEFAULT 0.0, connect_time_ms Float64 DEFAULT 0.0, hops Int32 DEFAULT 0, jitter_ms Float64 DEFAULT 0.0, bit_error_rate Float64 DEFAULT 0.0, packet_loss Float64 DEFAULT 0.0) ENGINE = MergeTree() ORDER BY (timestamp, task_id);`,
 		`CREATE TABLE IF NOT EXISTS sources (id String, name String, target String, is_default Bool) ENGINE = ReplacingMergeTree() ORDER BY id;`,
 	}
 
@@ -82,13 +82,13 @@ func (db *DB) GetEnabledTasks() ([]models.Task, error) {
 
 func (db *DB) InsertResult(r models.TaskResult) error {
 	id := uuid.New().String()
-	_, err := db.Exec(`INSERT INTO results (id, task_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv, ttfb_ms, dns_time_ms, connect_time_ms, hops) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		id, r.TaskID, r.Timestamp, r.Success, r.LatencyMs, r.ErrorMsg, r.BytesSent, r.BytesRecv, r.TTFBMs, r.DNSTimeMs, r.ConnectTimeMs, r.Hops)
+	_, err := db.Exec(`INSERT INTO results (id, task_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv, ttfb_ms, dns_time_ms, connect_time_ms, hops, jitter_ms, bit_error_rate, packet_loss) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, r.TaskID, r.Timestamp, r.Success, r.LatencyMs, r.ErrorMsg, r.BytesSent, r.BytesRecv, r.TTFBMs, r.DNSTimeMs, r.ConnectTimeMs, r.Hops, r.JitterMs, r.BitErrorRate, r.PacketLoss)
 	return err
 }
 
 func (db *DB) GetRecentResults(limit int) ([]models.TaskResult, error) {
-	rows, err := db.Query(`SELECT id, task_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv, ttfb_ms, dns_time_ms, connect_time_ms, hops FROM results ORDER BY timestamp DESC LIMIT ?`, limit)
+	rows, err := db.Query(`SELECT id, task_id, timestamp, success, latency_ms, error_msg, bytes_sent, bytes_recv, ttfb_ms, dns_time_ms, connect_time_ms, hops, jitter_ms, bit_error_rate, packet_loss FROM results ORDER BY timestamp DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (db *DB) GetRecentResults(limit int) ([]models.TaskResult, error) {
 	var results []models.TaskResult
 	for rows.Next() {
 		var r models.TaskResult
-		err := rows.Scan(&r.ID, &r.TaskID, &r.Timestamp, &r.Success, &r.LatencyMs, &r.ErrorMsg, &r.BytesSent, &r.BytesRecv, &r.TTFBMs, &r.DNSTimeMs, &r.ConnectTimeMs, &r.Hops)
+		err := rows.Scan(&r.ID, &r.TaskID, &r.Timestamp, &r.Success, &r.LatencyMs, &r.ErrorMsg, &r.BytesSent, &r.BytesRecv, &r.TTFBMs, &r.DNSTimeMs, &r.ConnectTimeMs, &r.Hops, &r.JitterMs, &r.BitErrorRate, &r.PacketLoss)
 		if err != nil {
 			return nil, err
 		}

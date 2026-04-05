@@ -91,6 +91,18 @@ func RunTask(t models.Task) models.TaskResult {
 			res.BytesSent = bSent
 			res.ErrorMsg = output
 		}
+	case models.TaskTypeBERT:
+		// Requires an echo server on the other end to bounce payload
+		var ber float64
+		err = runBERTTest(t.Target, &ber)
+		res.BitErrorRate = ber
+	case models.TaskTypeRFC2544:
+		var jitter, packetLoss float64
+		var throughput int64
+		err = runRFC2544Test(t.Target, &jitter, &packetLoss, &throughput)
+		res.JitterMs = jitter
+		res.PacketLoss = packetLoss
+		res.BytesSent = throughput
 	default:
 		err = fmt.Errorf("unknown task type: %s", t.Type)
 	}
@@ -144,6 +156,76 @@ func runHTTPTest(target string, ttfb, dnsTime, connectTime *float64) error {
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("HTTP status: %d", resp.StatusCode)
 	}
+	return nil
+}
+
+// runRFC2544Test runs a simplified software throughput, jitter, and frame loss simulation.
+func runRFC2544Test(target string, jitter *float64, packetLoss *float64, throughput *int64) error {
+	// A real RFC 2544 requires specialized hardware/kernel bypass to be accurate at line-rate.
+	// This simulates stepping up UDP load and measuring responses to infer limits and jitter.
+
+	conn, err := net.DialTimeout("udp", target, 5*time.Second)
+	if err != nil {
+		return fmt.Errorf("RFC 2544 target connection failed: %w", err)
+	}
+	defer conn.Close()
+
+	payloadSize := 1400 // bytes
+	payload := make([]byte, payloadSize)
+	for i := range payload {
+		payload[i] = 0xFF
+	}
+
+	burstCount := 100
+	var successfulResponses int
+	var previousLatency time.Duration
+	var totalJitter time.Duration
+
+	for i := 0; i < burstCount; i++ {
+		start := time.Now()
+		_, err := conn.Write(payload)
+		if err != nil {
+			continue // Packet dropped at source
+		}
+
+		// In a real test, we would wait for echo or use a two-way active measurement protocol (TWAMP).
+		// For this simple simulation, we just blast and assume network stack absorption,
+		// or if there's a simple echo server, we read it. Let's do a quick read with tight timeout.
+		conn.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
+		recv := make([]byte, payloadSize)
+		_, err = conn.Read(recv)
+
+		latency := time.Since(start)
+		if err == nil {
+			successfulResponses++
+
+			// Calculate jitter (variation in delay)
+			if i > 0 && previousLatency > 0 {
+				diff := latency - previousLatency
+				if diff < 0 {
+					diff = -diff
+				}
+				totalJitter += diff
+			}
+			previousLatency = latency
+		}
+	}
+
+	// Calculate metrics
+	*packetLoss = float64(burstCount-successfulResponses) / float64(burstCount)
+	if successfulResponses > 1 {
+		*jitter = float64(totalJitter.Milliseconds()) / float64(successfulResponses-1)
+	} else {
+		*jitter = 0.0
+	}
+
+	// Simplified throughput (bytes received successfully)
+	*throughput = int64(successfulResponses * payloadSize)
+
+	if *packetLoss > 0.5 {
+		return fmt.Errorf("high packet loss (>50%%) detected during throughput test")
+	}
+
 	return nil
 }
 
@@ -295,6 +377,55 @@ func runUDPTest(target string) error {
 	// Send a dummy payload
 	_, err = conn.Write([]byte("ping"))
 	return err
+}
+
+func runBERTTest(target string, ber *float64) error {
+	conn, err := net.DialTimeout("tcp", target, 5*time.Second)
+	if err != nil {
+		return fmt.Errorf("BERT target connection failed: %w", err)
+	}
+	defer conn.Close()
+
+	// Generate a known Pseudo-Random Binary Sequence (PRBS-like)
+	size := 1024 * 1024 // 1 MB payload
+	payload := make([]byte, size)
+	for i := range payload {
+		payload[i] = byte((i * 13) % 256) // Deterministic pattern
+	}
+
+	// Send payload
+	_, err = conn.Write(payload)
+	if err != nil {
+		return fmt.Errorf("BERT send failed: %w", err)
+	}
+
+	// Read echoed payload
+	recvPayload := make([]byte, size)
+	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+	n, err := io.ReadFull(conn, recvPayload)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		return fmt.Errorf("BERT receive failed: %w", err)
+	}
+
+	// Compare bits
+	var bitErrors int
+	totalBits := n * 8
+	for i := 0; i < n; i++ {
+		xor := payload[i] ^ recvPayload[i]
+		for j := 0; j < 8; j++ {
+			if (xor & (1 << j)) != 0 {
+				bitErrors++
+			}
+		}
+	}
+
+	if totalBits > 0 {
+		*ber = float64(bitErrors) / float64(totalBits)
+	} else {
+		*ber = 1.0 // 100% error if nothing received
+	}
+
+	return nil
 }
 
 func runDownloadTest(target string) (int64, error) {

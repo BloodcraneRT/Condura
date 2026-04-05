@@ -13,6 +13,9 @@ interface Result {
   dnsTimeMs: number;
   connectTimeMs: number;
   hops: number;
+  jitterMs: number;
+  bitErrorRate: number;
+  packetLoss: number;
 }
 
 interface Source {
@@ -177,6 +180,8 @@ export const Dashboard: React.FC = () => {
                   <option value="upload">Data Upload</option>
                   <option value="pcap_replay">PCAP Replay</option>
                   <option value="ostinato">Traffic Stream (Ostinato)</option>
+                  <option value="bert">BERT (Bit Error Rate Test)</option>
+                  <option value="rfc2544">RFC 2544 (Throughput/Loss/Jitter)</option>
                 </select>
               </div>
               <div>
@@ -351,6 +356,24 @@ export const Dashboard: React.FC = () => {
                         <div className="flex flex-col">
                           <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Hops</span>
                           <span className="text-sm font-bold text-[#222222]">{res.hops}</span>
+                        </div>
+                      )}
+                      {res.jitterMs > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Jitter</span>
+                          <span className="text-sm font-bold text-[#222222]">{res.jitterMs.toFixed(2)}ms</span>
+                        </div>
+                      )}
+                      {res.bitErrorRate > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Bit Error Rate</span>
+                          <span className="text-sm font-bold text-[#222222]">{(res.bitErrorRate * 100).toFixed(4)}%</span>
+                        </div>
+                      )}
+                      {res.packetLoss > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Packet Loss</span>
+                          <span className="text-sm font-bold text-[#222222]">{(res.packetLoss * 100).toFixed(2)}%</span>
                         </div>
                       )}
                     </div>
