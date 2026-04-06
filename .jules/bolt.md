@@ -1,0 +1,3 @@
+## 2024-04-06 - Pre-allocate static payloads to reduce GC pressure
+**Learning:** Repetitive large memory allocations in Go synthetic test runners (like dynamically allocating 10MB buffers for each upload, download chunk, or BERT payload inside hot loops or frequent handlers) create immense GC pressure. This becomes a severe performance bottleneck during high-throughput saturation testing.
+**Action:** Always pre-allocate large, immutable payloads (e.g. byte arrays for test data generation) as global variables during initialization rather than re-allocating them per-request or per-test execution to improve performance at scale.

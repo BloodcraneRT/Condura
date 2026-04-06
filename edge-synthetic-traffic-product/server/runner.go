@@ -17,6 +17,29 @@ import (
 	"github.com/edgesynth/edgesynth/pkg/models"
 )
 
+var (
+	uploadPayload   []byte
+	bertPayload     []byte
+	ostinatoPayload []byte
+)
+
+func init() {
+	uploadPayload = make([]byte, 10*1024*1024)
+	for i := range uploadPayload {
+		uploadPayload[i] = 'B'
+	}
+
+	bertPayload = make([]byte, 1024*1024)
+	for i := range bertPayload {
+		bertPayload[i] = byte((i * 13) % 256)
+	}
+
+	ostinatoPayload = make([]byte, 2048) // max expected typical packet size
+	for i := range ostinatoPayload {
+		ostinatoPayload[i] = byte(i % 256)
+	}
+}
+
 // RunTask executes the synthetic task based on its type.
 func RunTask(t models.Task) models.TaskResult {
 	res := models.TaskResult{
@@ -128,10 +151,10 @@ func runHTTPTest(target string, ttfb, dnsTime, connectTime *float64) error {
 	var dnsStart, dnsDone, connStart, connDone, gotFirstByte time.Time
 
 	trace := &httptrace.ClientTrace{
-		DNSStart: func(_ httptrace.DNSStartInfo) { dnsStart = time.Now() },
-		DNSDone:  func(_ httptrace.DNSDoneInfo) { dnsDone = time.Now() },
-		ConnectStart: func(_, _ string) { connStart = time.Now() },
-		ConnectDone: func(net, addr string, err error) { connDone = time.Now() },
+		DNSStart:             func(_ httptrace.DNSStartInfo) { dnsStart = time.Now() },
+		DNSDone:              func(_ httptrace.DNSDoneInfo) { dnsDone = time.Now() },
+		ConnectStart:         func(_, _ string) { connStart = time.Now() },
+		ConnectDone:          func(net, addr string, err error) { connDone = time.Now() },
 		GotFirstResponseByte: func() { gotFirstByte = time.Now() },
 	}
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
@@ -181,6 +204,8 @@ func runRFC2544Test(target string, jitter *float64, packetLoss *float64, through
 	var previousLatency time.Duration
 	var totalJitter time.Duration
 
+	recv := make([]byte, payloadSize)
+
 	for i := 0; i < burstCount; i++ {
 		start := time.Now()
 		_, err := conn.Write(payload)
@@ -192,7 +217,6 @@ func runRFC2544Test(target string, jitter *float64, packetLoss *float64, through
 		// For this simple simulation, we just blast and assume network stack absorption,
 		// or if there's a simple echo server, we read it. Let's do a quick read with tight timeout.
 		conn.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
-		recv := make([]byte, payloadSize)
 		_, err = conn.Read(recv)
 
 		latency := time.Since(start)
@@ -337,10 +361,14 @@ func runOstinatoStream(target string, cfg models.OstinatoConfig) (int64, string,
 	}
 	defer conn.Close()
 
-	payload := make([]byte, packetSize)
-	// fill with junk
-	for i := range payload {
-		payload[i] = byte(i % 256)
+	var payload []byte
+	if packetSize <= len(ostinatoPayload) {
+		payload = ostinatoPayload[:packetSize]
+	} else {
+		payload = make([]byte, packetSize)
+		for i := range payload {
+			payload[i] = byte(i % 256)
+		}
 	}
 
 	ticker := time.NewTicker(time.Second / time.Duration(pps))
@@ -386,15 +414,10 @@ func runBERTTest(target string, ber *float64) error {
 	}
 	defer conn.Close()
 
-	// Generate a known Pseudo-Random Binary Sequence (PRBS-like)
-	size := 1024 * 1024 // 1 MB payload
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = byte((i * 13) % 256) // Deterministic pattern
-	}
-
+	// Use pre-allocated 1MB PRBS payload
+	size := len(bertPayload)
 	// Send payload
-	_, err = conn.Write(payload)
+	_, err = conn.Write(bertPayload)
 	if err != nil {
 		return fmt.Errorf("BERT send failed: %w", err)
 	}
@@ -411,7 +434,7 @@ func runBERTTest(target string, ber *float64) error {
 	var bitErrors int
 	totalBits := n * 8
 	for i := 0; i < n; i++ {
-		xor := payload[i] ^ recvPayload[i]
+		xor := bertPayload[i] ^ recvPayload[i]
 		for j := 0; j < 8; j++ {
 			if (xor & (1 << j)) != 0 {
 				bitErrors++
@@ -449,14 +472,9 @@ func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
+	size := len(uploadPayload)
 
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	req, err := http.NewRequest("POST", target, bytes.NewReader(uploadPayload))
 	if err != nil {
 		return 0, err
 	}

@@ -32,19 +32,19 @@ const (
 type Task struct {
 	ID       string   `json:"id"`
 	Type     TaskType `json:"type"`
-	Target   string   `json:"target"`             // e.g., "8.8.8.8", "https://example.com"
-	Interval int      `json:"interval"`           // in seconds
-	Config   string   `json:"config,omitempty"`   // JSON string of specific test config
+	Target   string   `json:"target"`           // e.g., "8.8.8.8", "https://example.com"
+	Interval int      `json:"interval"`         // in seconds
+	Config   string   `json:"config,omitempty"` // JSON string of specific test config
 	Enabled  bool     `json:"enabled"`
 }
 
 // TaskResult contains the metrics gathered from a single execution of a Task.
 type TaskResult struct {
-	ID          string    `json:"id"`
-	TaskID      string    `json:"taskId"`
-	Timestamp   time.Time `json:"timestamp"`
-	Success     bool      `json:"success"`
-	LatencyMs   float64   `json:"latencyMs"`
+	ID            string    `json:"id"`
+	TaskID        string    `json:"taskId"`
+	Timestamp     time.Time `json:"timestamp"`
+	Success       bool      `json:"success"`
+	LatencyMs     float64   `json:"latencyMs"`
 	ErrorMsg      string    `json:"errorMsg,omitempty"`
 	BytesSent     int64     `json:"bytesSent"`
 	BytesRecv     int64     `json:"bytesRecv"`
@@ -67,10 +67,10 @@ type OstinatoConfig struct {
 
 // AggregatedMetrics represents summary statistics of tests over time.
 type AggregatedMetrics struct {
-	TotalTests      int64   `json:"totalTests"`
-	TotalSuccesses  int64   `json:"totalSuccesses"`
-	TotalFailures   int64   `json:"totalFailures"`
-	AvgLatencyMs    float64 `json:"avgLatencyMs"`
-	TotalBytesSent  int64   `json:"totalBytesSent"`
-	TotalBytesRecv  int64   `json:"totalBytesRecv"`
+	TotalTests     int64   `json:"totalTests"`
+	TotalSuccesses int64   `json:"totalSuccesses"`
+	TotalFailures  int64   `json:"totalFailures"`
+	AvgLatencyMs   float64 `json:"avgLatencyMs"`
+	TotalBytesSent int64   `json:"totalBytesSent"`
+	TotalBytesRecv int64   `json:"totalBytesRecv"`
 }

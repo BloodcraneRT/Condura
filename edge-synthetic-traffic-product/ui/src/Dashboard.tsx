@@ -39,7 +39,7 @@ const API_URL = '/api/v1';
 export const Dashboard: React.FC = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<{id: string, type: string, target: string, interval: number}[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
 
   // Task form state

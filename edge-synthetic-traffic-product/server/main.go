@@ -25,7 +25,18 @@ var (
 	connStr  string
 	port     int
 	database *DB
+
+	jsonDownloadChunk []byte
+	binDownloadChunk  []byte
 )
+
+func init() {
+	jsonDownloadChunk = make([]byte, 1024*1024)
+	for i := range jsonDownloadChunk {
+		jsonDownloadChunk[i] = 'A'
+	}
+	binDownloadChunk = make([]byte, 4*1024*1024)
+}
 
 func main() {
 	defaultConnStr := os.Getenv("DATABASE_URL")
@@ -59,7 +70,7 @@ func main() {
 	// API Routes for UI
 	http.HandleFunc("/api/v1/ui/metrics", handleUIMetrics)
 	http.HandleFunc("/api/v1/ui/results", handleUIResults)
-	http.HandleFunc("/api/v1/ui/tasks", handleUITasks) // for creating tasks
+	http.HandleFunc("/api/v1/ui/tasks", handleUITasks)     // for creating tasks
 	http.HandleFunc("/api/v1/ui/sources", handleUISources) // for getting/creating sources
 
 	// Data endpoints for synthetic load
@@ -177,10 +188,10 @@ func handleUIMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 	if database == nil {
 		json.NewEncoder(w).Encode(models.AggregatedMetrics{
-			TotalTests: 42,
+			TotalTests:     42,
 			TotalSuccesses: 40,
-			TotalFailures: 2,
-			AvgLatencyMs: 45.2,
+			TotalFailures:  2,
+			AvgLatencyMs:   45.2,
 			TotalBytesRecv: 10485760,
 			TotalBytesSent: 2048,
 		})
@@ -291,16 +302,12 @@ func handleDownloadData(w http.ResponseWriter, r *http.Request) {
 		// Write dummy A's to fill size
 		remaining := sizeBytes - 12
 		chunkSize := int64(1024 * 1024)
-		chunk := make([]byte, chunkSize)
-		for i := range chunk {
-			chunk[i] = 'A'
-		}
 		for remaining > 0 {
 			writeSize := remaining
 			if writeSize > chunkSize {
 				writeSize = chunkSize
 			}
-			w.Write(chunk[:writeSize])
+			w.Write(jsonDownloadChunk[:writeSize])
 			remaining -= writeSize
 		}
 		w.Write([]byte(`"}`))
@@ -310,7 +317,6 @@ func handleDownloadData(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", strconv.FormatInt(sizeBytes, 10))
 
 		chunkSize := int64(4 * 1024 * 1024) // 4MB chunks
-		chunk := make([]byte, chunkSize)
 		remaining := sizeBytes
 
 		for remaining > 0 {
@@ -318,7 +324,7 @@ func handleDownloadData(w http.ResponseWriter, r *http.Request) {
 			if writeSize > chunkSize {
 				writeSize = chunkSize
 			}
-			_, err := w.Write(chunk[:writeSize])
+			_, err := w.Write(binDownloadChunk[:writeSize])
 			if err != nil {
 				// Client likely disconnected
 				break
