@@ -1,0 +1,3 @@
+## 2024-05-24 - Pre-allocating Repeated Synthetic Payloads
+**Learning:** In EdgeSynth, recurring network tests like `runUploadTest` (allocates 10MB) and `runBERTTest` (allocates 1MB) dynamically allocate and loop to fill large payload buffers on every execution. This creates significant CPU overhead and garbage collection pressure when running high-frequency synthetic traffic tests.
+**Action:** Use global, pre-allocated variables initialized via an `init()` block for static/deterministic payloads to achieve zero-allocation test blasting.

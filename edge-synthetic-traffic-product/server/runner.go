@@ -17,6 +17,27 @@ import (
 	"github.com/edgesynth/edgesynth/pkg/models"
 )
 
+var (
+	globalUploadPayload []byte
+	globalBERTPayload   []byte
+)
+
+func init() {
+	// Initialize 10MB dummy payload for upload testing
+	uploadSize := 10 * 1024 * 1024
+	globalUploadPayload = make([]byte, uploadSize)
+	for i := range globalUploadPayload {
+		globalUploadPayload[i] = 'B'
+	}
+
+	// Initialize 1MB known Pseudo-Random Binary Sequence for BERT
+	bertSize := 1024 * 1024
+	globalBERTPayload = make([]byte, bertSize)
+	for i := range globalBERTPayload {
+		globalBERTPayload[i] = byte((i * 13) % 256) // Deterministic pattern
+	}
+}
+
 // RunTask executes the synthetic task based on its type.
 func RunTask(t models.Task) models.TaskResult {
 	res := models.TaskResult{
@@ -386,18 +407,13 @@ func runBERTTest(target string, ber *float64) error {
 	}
 	defer conn.Close()
 
-	// Generate a known Pseudo-Random Binary Sequence (PRBS-like)
-	size := 1024 * 1024 // 1 MB payload
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = byte((i * 13) % 256) // Deterministic pattern
-	}
-
 	// Send payload
-	_, err = conn.Write(payload)
+	_, err = conn.Write(globalBERTPayload)
 	if err != nil {
 		return fmt.Errorf("BERT send failed: %w", err)
 	}
+
+	size := len(globalBERTPayload)
 
 	// Read echoed payload
 	recvPayload := make([]byte, size)
@@ -411,7 +427,7 @@ func runBERTTest(target string, ber *float64) error {
 	var bitErrors int
 	totalBits := n * 8
 	for i := 0; i < n; i++ {
-		xor := payload[i] ^ recvPayload[i]
+		xor := globalBERTPayload[i] ^ recvPayload[i]
 		for j := 0; j < 8; j++ {
 			if (xor & (1 << j)) != 0 {
 				bitErrors++
@@ -449,18 +465,12 @@ func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
-
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	req, err := http.NewRequest("POST", target, bytes.NewReader(globalUploadPayload))
 	if err != nil {
 		return 0, err
 	}
 	req.Header.Set("Content-Type", "application/octet-stream")
+	size := len(globalUploadPayload)
 
 	resp, err := client.Do(req)
 	if err != nil {
