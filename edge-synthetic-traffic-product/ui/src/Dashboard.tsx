@@ -39,7 +39,7 @@ const API_URL = '/api/v1';
 export const Dashboard: React.FC = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<{id: string, type: string, target: string, interval: number}[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
 
   // Task form state
@@ -164,8 +164,9 @@ export const Dashboard: React.FC = () => {
             <h2 className="text-xl font-bold mb-6 text-[#222222] tracking-tight">Schedule New Test</h2>
             <form onSubmit={handleCreateTask} className="space-y-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Test Type</label>
+                <label htmlFor="testType" className="block text-sm font-semibold text-gray-700 mb-2">Test Type</label>
                 <select
+                  id="testType"
                   className="block w-full border-gray-200 bg-white py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-xl border shadow-sm transition-shadow"
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
@@ -185,8 +186,9 @@ export const Dashboard: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Source Target</label>
+                <label htmlFor="sourceTarget" className="block text-sm font-semibold text-gray-700 mb-2">Source Target</label>
                 <select
+                  id="sourceTarget"
                   className="block w-full border-gray-200 bg-white py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-xl border shadow-sm transition-shadow"
                   value={selectedSource}
                   onChange={(e) => setSelectedSource(e.target.value)}
@@ -198,8 +200,9 @@ export const Dashboard: React.FC = () => {
               </div>
               {selectedType === 'pcap_replay' && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Network Interface (e.g., eth0)</label>
+                  <label htmlFor="networkInterface" className="block text-sm font-semibold text-gray-700 mb-2">Network Interface (e.g., eth0)</label>
                   <input
+                    id="networkInterface"
                     type="text"
                     placeholder="eth0"
                     className="block w-full border-gray-200 bg-white py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-xl border shadow-sm transition-shadow"
@@ -210,8 +213,9 @@ export const Dashboard: React.FC = () => {
               )}
               {selectedType === 'ostinato' && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Ostinato Stream Config (JSON)</label>
+                  <label htmlFor="ostinatoConfig" className="block text-sm font-semibold text-gray-700 mb-2">Ostinato Stream Config (JSON)</label>
                   <textarea
+                    id="ostinatoConfig"
                     placeholder={'{\n  "protocol": "udp",\n  "packetSize": 512,\n  "pps": 100,\n  "duration": 5\n}'}
                     className="block w-full border-gray-200 bg-white py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-xl border shadow-sm transition-shadow"
                     rows={5}
@@ -231,8 +235,9 @@ export const Dashboard: React.FC = () => {
             <h2 className="text-xl font-bold mb-6 text-[#222222] tracking-tight">New Target Source</h2>
             <form onSubmit={handleCreateSource} className="space-y-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
+                <label htmlFor="newSourceName" className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
                 <input
+                  id="newSourceName"
                   type="text"
                   required
                   placeholder="e.g. Production API"
@@ -242,8 +247,9 @@ export const Dashboard: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Target URL or IP</label>
+                <label htmlFor="newSourceTarget" className="block text-sm font-semibold text-gray-700 mb-2">Target URL or IP</label>
                 <input
+                  id="newSourceTarget"
                   type="text"
                   required
                   placeholder="e.g. https://api.example.com"
@@ -282,7 +288,7 @@ export const Dashboard: React.FC = () => {
                     </div>
                     <button
                       onClick={() => handleDeleteTask(task.id)}
-                      className="opacity-0 group-hover:opacity-100 px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl hover:bg-red-100 transition-all"
+                      className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl hover:bg-red-100 transition-all focus:outline-none focus:ring-2 focus:ring-red-500"
                     >
                       Delete
                     </button>

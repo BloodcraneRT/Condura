@@ -1,0 +1,3 @@
+## 2024-05-24 - Interactive Element Accessibility
+**Learning:** Hover-only interactive elements (like the Delete button on active tasks) require `focus-visible` classes (e.g. `focus-visible:opacity-100`) to be visible during keyboard navigation. Additionally, all forms must use explicit `id` and `htmlFor` linkages between labels and inputs for screen readers to properly associate them.
+**Action:** Always ensure that elements with `opacity-0 group-hover:opacity-100` also include `focus-visible:opacity-100` so that keyboard users can see the element when tabbing. Similarly, always ensure forms have explicit `htmlFor` and `id` tags.
