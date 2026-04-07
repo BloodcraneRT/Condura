@@ -39,7 +39,7 @@ const API_URL = '/api/v1';
 export const Dashboard: React.FC = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<{ id: string; type: string; target: string; interval: number }[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
 
   // Task form state
@@ -52,24 +52,16 @@ export const Dashboard: React.FC = () => {
   const [newSourceTarget, setNewSourceTarget] = useState('');
 
   const fetchData = () => {
-    fetch(`${API_URL}/ui/tasks`)
+    // ⚡ Bolt: Batched API calls into a single /dashboard endpoint to reduce
+    // network overhead by 75% and allow concurrent database queries on the backend.
+    fetch(`${API_URL}/ui/dashboard`)
       .then(res => res.json())
-      .then(data => setTasks(data))
-      .catch(console.error);
-
-    fetch(`${API_URL}/ui/results`)
-      .then(res => res.json())
-      .then(data => setResults(data))
-      .catch(console.error);
-
-    fetch(`${API_URL}/ui/sources`)
-      .then(res => res.json())
-      .then(data => setSources(data))
-      .catch(console.error);
-
-    fetch(`${API_URL}/ui/metrics`)
-      .then(res => res.json())
-      .then(data => setMetrics(data))
+      .then(data => {
+        setTasks(data.tasks);
+        setResults(data.results);
+        setSources(data.sources);
+        setMetrics(data.metrics);
+      })
       .catch(console.error);
   };
 

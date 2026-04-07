@@ -61,6 +61,7 @@ func main() {
 	http.HandleFunc("/api/v1/ui/results", handleUIResults)
 	http.HandleFunc("/api/v1/ui/tasks", handleUITasks) // for creating tasks
 	http.HandleFunc("/api/v1/ui/sources", handleUISources) // for getting/creating sources
+	http.HandleFunc("/api/v1/ui/dashboard", handleUIDashboard) // aggregated dashboard data
 
 	// Data endpoints for synthetic load
 	http.HandleFunc("/api/v1/testdata/download", handleDownloadData)
@@ -169,6 +170,117 @@ func enableCORS(next http.Handler) http.HandlerFunc {
 }
 
 // UI Handlers
+
+type DashboardData struct {
+	Tasks   []models.Task         `json:"tasks"`
+	Results []models.TaskResult   `json:"results"`
+	Sources []models.Source       `json:"sources"`
+	Metrics models.AggregatedMetrics `json:"metrics"`
+}
+
+func handleUIDashboard(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if database == nil {
+		json.NewEncoder(w).Encode(DashboardData{
+			Tasks: []models.Task{},
+			Results: []models.TaskResult{
+				{ID: "res1", TaskID: "task1", Timestamp: time.Now(), Success: true, LatencyMs: 42.1},
+			},
+			Sources: []models.Source{
+				{ID: "src1", Name: "Mock Source", Target: "mock", IsDefault: true},
+			},
+			Metrics: models.AggregatedMetrics{
+				TotalTests: 42,
+				TotalSuccesses: 40,
+				TotalFailures: 2,
+				AvgLatencyMs: 45.2,
+				TotalBytesRecv: 10485760,
+				TotalBytesSent: 2048,
+			},
+		})
+		return
+	}
+
+	var data DashboardData
+	var wg sync.WaitGroup
+	var errTasks, errResults, errSources, errMetrics error
+
+	wg.Add(4)
+
+	go func() {
+		defer wg.Done()
+		tasks, err := database.GetEnabledTasks()
+		if err == nil {
+			if tasks == nil {
+				tasks = []models.Task{}
+			}
+			data.Tasks = tasks
+		} else {
+			errTasks = err
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		results, err := database.GetRecentResults(100)
+		if err == nil {
+			if results == nil {
+				results = []models.TaskResult{}
+			}
+			data.Results = results
+		} else {
+			errResults = err
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		sources, err := database.GetSources()
+		if err == nil {
+			if sources == nil {
+				sources = []models.Source{}
+			}
+			data.Sources = sources
+		} else {
+			errSources = err
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		metrics, err := database.GetAggregatedMetrics()
+		if err == nil {
+			data.Metrics = metrics
+		} else {
+			errMetrics = err
+		}
+	}()
+
+	wg.Wait()
+
+	if errTasks != nil {
+		http.Error(w, errTasks.Error(), http.StatusInternalServerError)
+		return
+	}
+	if errResults != nil {
+		http.Error(w, errResults.Error(), http.StatusInternalServerError)
+		return
+	}
+	if errSources != nil {
+		http.Error(w, errSources.Error(), http.StatusInternalServerError)
+		return
+	}
+	if errMetrics != nil {
+		http.Error(w, errMetrics.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(data)
+}
 
 func handleUIMetrics(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
