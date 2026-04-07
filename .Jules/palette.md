@@ -1,0 +1,3 @@
+## 2026-04-07 - Explicit Label Linkage and Hover Element Focus
+**Learning:** Relying on implicit label wrapping is sometimes insufficient for strict accessibility compliance and screen reader reliability, especially in dense forms. Furthermore, hover-only interactive elements (like row-level delete buttons) are completely invisible to keyboard-only users unless explicitly handled.
+**Action:** Always use explicit `id` and `htmlFor` linkages between labels and inputs/selects in forms. For any element that appears only on `group-hover`, ensure it also includes `focus-visible:opacity-100` and a descriptive `aria-label`.
