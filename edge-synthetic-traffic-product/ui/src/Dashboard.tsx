@@ -39,7 +39,7 @@ const API_URL = '/api/v1';
 export const Dashboard: React.FC = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
-  const [tasks, setTasks] = useState<{ id: string; type: string; target: string; interval: number; }[]>([]);
+  const [tasks, setTasks] = useState<{id: string; type: string; target: string; interval: number}[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
 
   // Task form state
@@ -247,9 +247,9 @@ export const Dashboard: React.FC = () => {
                 />
               </div>
               <div>
-                <label htmlFor="source-url" className="block text-sm font-semibold text-gray-700 mb-2">Target URL or IP</label>
+                <label htmlFor="source-target-url" className="block text-sm font-semibold text-gray-700 mb-2">Target URL or IP</label>
                 <input
-                  id="source-url"
+                  id="source-target-url"
                   type="text"
                   required
                   placeholder="e.g. https://api.example.com"
@@ -288,8 +288,8 @@ export const Dashboard: React.FC = () => {
                     </div>
                     <button
                       onClick={() => handleDeleteTask(task.id)}
-                      aria-label={`Delete task ${task.type} for ${task.target}`}
-                      className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-rose-500 focus:outline-none px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl hover:bg-red-100 transition-all"
+                      className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl hover:bg-red-100 transition-all"
+                      aria-label={`Delete task ${task.type}`}
                     >
                       Delete
                     </button>
