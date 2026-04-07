@@ -59,7 +59,7 @@ func main() {
 	// API Routes for UI
 	http.HandleFunc("/api/v1/ui/metrics", handleUIMetrics)
 	http.HandleFunc("/api/v1/ui/results", handleUIResults)
-	http.HandleFunc("/api/v1/ui/tasks", handleUITasks) // for creating tasks
+	http.HandleFunc("/api/v1/ui/tasks", handleUITasks)     // for creating tasks
 	http.HandleFunc("/api/v1/ui/sources", handleUISources) // for getting/creating sources
 
 	// Data endpoints for synthetic load
@@ -177,10 +177,10 @@ func handleUIMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 	if database == nil {
 		json.NewEncoder(w).Encode(models.AggregatedMetrics{
-			TotalTests: 42,
+			TotalTests:     42,
 			TotalSuccesses: 40,
-			TotalFailures: 2,
-			AvgLatencyMs: 45.2,
+			TotalFailures:  2,
+			AvgLatencyMs:   45.2,
 			TotalBytesRecv: 10485760,
 			TotalBytesSent: 2048,
 		})
