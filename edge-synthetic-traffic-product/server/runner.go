@@ -161,6 +161,9 @@ func runHTTPTest(target string, ttfb, dnsTime, connectTime *float64) error {
 }
 
 // runRFC2544Test runs a simplified software throughput, jitter, and frame loss simulation.
+// Pre-allocate UDP payload for RFC2544
+var rfc2544Payload = bytes.Repeat([]byte{0xFF}, 1400)
+
 func runRFC2544Test(target string, jitter *float64, packetLoss *float64, throughput *int64) error {
 	// A real RFC 2544 requires specialized hardware/kernel bypass to be accurate at line-rate.
 	// This simulates stepping up UDP load and measuring responses to infer limits and jitter.
@@ -172,11 +175,6 @@ func runRFC2544Test(target string, jitter *float64, packetLoss *float64, through
 	defer conn.Close()
 
 	payloadSize := 1400 // bytes
-	payload := make([]byte, payloadSize)
-	for i := range payload {
-		payload[i] = 0xFF
-	}
-
 	burstCount := 100
 	var successfulResponses int
 	var previousLatency time.Duration
@@ -184,7 +182,7 @@ func runRFC2544Test(target string, jitter *float64, packetLoss *float64, through
 
 	for i := 0; i < burstCount; i++ {
 		start := time.Now()
-		_, err := conn.Write(payload)
+		_, err := conn.Write(rfc2544Payload)
 		if err != nil {
 			continue // Packet dropped at source
 		}
@@ -380,6 +378,16 @@ func runUDPTest(target string) error {
 	return err
 }
 
+// Pre-allocate known Pseudo-Random Binary Sequence (PRBS-like)
+var bertPayload = func() []byte {
+	size := 1024 * 1024 // 1 MB payload
+	p := make([]byte, size)
+	for i := range p {
+		p[i] = byte((i * 13) % 256) // Deterministic pattern
+	}
+	return p
+}()
+
 func runBERTTest(target string, ber *float64) error {
 	conn, err := net.DialTimeout("tcp", target, 5*time.Second)
 	if err != nil {
@@ -387,21 +395,15 @@ func runBERTTest(target string, ber *float64) error {
 	}
 	defer conn.Close()
 
-	// Generate a known Pseudo-Random Binary Sequence (PRBS-like)
-	size := 1024 * 1024 // 1 MB payload
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = byte((i * 13) % 256) // Deterministic pattern
-	}
-
+	// Bolt optimization: reuse pre-allocated 1MB payload to avoid ~1ms initialization overhead per test
 	// Send payload
-	_, err = conn.Write(payload)
+	_, err = conn.Write(bertPayload)
 	if err != nil {
 		return fmt.Errorf("BERT send failed: %w", err)
 	}
 
 	// Read echoed payload
-	recvPayload := make([]byte, size)
+	recvPayload := make([]byte, len(bertPayload))
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
 	n, err := io.ReadFull(conn, recvPayload)
 	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
@@ -414,7 +416,7 @@ func runBERTTest(target string, ber *float64) error {
 	var bitErrors int
 	totalBits := n * 8
 	for i := 0; i < n; i++ {
-		xor := payload[i] ^ recvPayload[i]
+		xor := bertPayload[i] ^ recvPayload[i]
 		bitErrors += bits.OnesCount8(xor)
 	}
 
@@ -444,18 +446,15 @@ func runDownloadTest(target string) (int64, error) {
 	return bytesRead, err
 }
 
+// Pre-allocate dummy 10MB upload payload
+var uploadPayload = bytes.Repeat([]byte{'B'}, 10*1024*1024)
+
 func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
-
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	// Bolt optimization: reuse pre-allocated 10MB payload to avoid high allocation/initialization overhead per test
+	req, err := http.NewRequest("POST", target, bytes.NewReader(uploadPayload))
 	if err != nil {
 		return 0, err
 	}
@@ -471,5 +470,5 @@ func runUploadTest(target string) (int64, error) {
 		return 0, fmt.Errorf("HTTP status: %d", resp.StatusCode)
 	}
 
-	return int64(size), nil
+	return int64(len(uploadPayload)), nil
 }

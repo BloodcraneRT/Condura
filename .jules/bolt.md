@@ -1,3 +1,6 @@
 ## 2024-05-18 - math/bits Provides Significant Performance Boost
 **Learning:** Replacing manual bitwise counting loops with standard library functions from `math/bits` (like `bits.OnesCount8`) provides a significant performance boost for calculating bit errors in large payloads (~14x faster in my benchmarks) due to the use of optimized assembly instructions.
 **Action:** When working with bit-level analysis or manipulations across large buffers, always prefer `math/bits` library functions over manual loop structures.
+## 2025-04-08 - Pre-allocate Static Test Payloads Globally
+**Learning:** In synthetic load generators (like `runUploadTest`, `runBERTTest`, `runRFC2544Test`), dynamically allocating large byte slices (e.g. 10MB) or repeatedly computing deterministic test patterns on each request significantly increases CPU cycles and GC overhead. Memory allocations happen per request instead of once.
+**Action:** When working on synthetic network tools, identify large dummy/test payloads. Hoist their allocation and initialization into global, package-level variables utilizing functions like `bytes.Repeat` or immediate-invocation functions (e.g. `var payload = func() []byte{...}()`). Passing read-only slices (via `bytes.NewReader` or directly to `net.Conn`) is completely thread-safe for concurrent tests.
