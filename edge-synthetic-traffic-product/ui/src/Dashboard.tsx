@@ -272,7 +272,16 @@ export const Dashboard: React.FC = () => {
           <div className="bg-white shadow-sm border border-gray-100 rounded-3xl overflow-hidden">
             <ul className="divide-y divide-gray-50">
               {tasks.length === 0 ? (
-                <li className="px-8 py-10 text-center text-sm font-medium text-gray-400">No tasks currently scheduled.</li>
+                <li className="px-8 py-16 text-center flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-3xl m-4 bg-gray-50/50">
+                  <svg className="w-12 h-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                  <p className="text-sm font-bold text-[#222222] mb-1">No tasks currently scheduled</p>
+                  <p className="text-xs text-gray-500 mb-4 max-w-sm">Schedule a new test to start monitoring your network performance.</p>
+                  <button onClick={() => document.getElementById('test-type')?.focus()} className="px-4 py-2 bg-white text-sm font-bold text-[#222222] rounded-xl border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-rose-500 focus-visible:outline-none transition-all">
+                    Create your first task
+                  </button>
+                </li>
               ) : (
                 tasks.map(task => (
                   <li key={task.id} className="px-8 py-6 hover:bg-gray-50 transition-colors flex justify-between items-center group">
@@ -307,7 +316,13 @@ export const Dashboard: React.FC = () => {
           <div className="bg-white shadow-sm border border-gray-100 rounded-3xl overflow-hidden">
             <ul className="divide-y divide-gray-50">
               {results.length === 0 ? (
-                <li className="px-8 py-10 text-center text-sm font-medium text-gray-400">No tests executed yet.</li>
+                <li className="px-8 py-16 text-center flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-3xl m-4 bg-gray-50/50">
+                  <svg className="w-12 h-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <p className="text-sm font-bold text-[#222222] mb-1">No traffic logs yet</p>
+                  <p className="text-xs text-gray-500 max-w-sm">Logs will appear here once your scheduled tasks start executing.</p>
+                </li>
               ) : (
                 results.map(res => (
                   <li key={res.id} className="px-8 py-6 hover:bg-gray-50 transition-colors">
