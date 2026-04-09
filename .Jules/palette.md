@@ -9,3 +9,8 @@
 ## 2024-05-19 - Actionable Empty States
 **Learning:** Plain text empty states ("No tasks currently scheduled") are unhelpful to users and miss an opportunity to guide them. Adding visual weight (dashed borders, icons) and a call-to-action button that programmatically focuses the relevant input form (`document.getElementById("id").focus()`) significantly reduces friction for first-time users and improves accessibility.
 **Action:** When designing empty states for lists or tables, always include an actionable button that directs focus to the element needed to populate that list, and ensure the icon used is decorative with `aria-hidden="true"`.
+## 2024-04-09 - Accessible Visual Required Indicators and Button Loading States
+
+**Learning:** Required inputs need a clear visual indicator that isn't just color-based, and this indicator shouldn't be confusingly read by screen readers (like "star"). Additionally, form buttons that perform async actions without a disabled/loading state leave users guessing and can lead to duplicate submissions.
+
+**Action:** Always add an accessible visual required indicator to the label, using `<span aria-hidden="true" className="text-rose-500 ml-1">*</span>`. Always add a loading state boolean (e.g., `isCreatingTask`) that disables the submit button (`disabled:opacity-70 disabled:cursor-not-allowed`) and changes its text (e.g., "Scheduling...") while the fetch is happening, ensuring it resets in a `.finally()` block.
