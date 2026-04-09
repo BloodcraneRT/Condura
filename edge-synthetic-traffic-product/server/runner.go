@@ -444,21 +444,42 @@ func runDownloadTest(target string) (int64, error) {
 	return bytesRead, err
 }
 
+// dummyStreamReader implements io.Reader to generate payload without allocation
+type dummyStreamReader struct {
+	size int64
+	read int64
+}
+
+func (r *dummyStreamReader) Read(p []byte) (n int, err error) {
+	if r.read >= r.size {
+		return 0, io.EOF
+	}
+	rem := r.size - r.read
+	if int64(len(p)) > rem {
+		p = p[:rem]
+	}
+	for i := range p {
+		p[i] = 'B'
+	}
+	r.read += int64(len(p))
+	return len(p), nil
+}
+
 func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
+	// ⚡ Bolt Optimization: Use a custom io.Reader instead of allocating 10MB into memory
+	size := int64(10 * 1024 * 1024)
+	reader := &dummyStreamReader{size: size}
 
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	req, err := http.NewRequest("POST", target, reader)
 	if err != nil {
 		return 0, err
 	}
+
+	// Must explicitly set ContentLength when using custom reader, otherwise it chunks
+	req.ContentLength = size
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := client.Do(req)
