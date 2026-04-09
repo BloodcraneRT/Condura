@@ -427,6 +427,25 @@ func runBERTTest(target string, ber *float64) error {
 	return nil
 }
 
+type dummyPayloadReader struct {
+	remaining int64
+}
+
+func (r *dummyPayloadReader) Read(p []byte) (n int, err error) {
+	if r.remaining <= 0 {
+		return 0, io.EOF
+	}
+	toRead := int64(len(p))
+	if toRead > r.remaining {
+		toRead = r.remaining
+	}
+	for i := 0; i < int(toRead); i++ {
+		p[i] = 'B'
+	}
+	r.remaining -= toRead
+	return int(toRead), nil
+}
+
 func runDownloadTest(target string) (int64, error) {
 	// A 60-second timeout allows for downloads up to ~2GB to complete depending on network speed
 	client := http.Client{Timeout: 60 * time.Second}
@@ -448,17 +467,14 @@ func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
+	// Stream a dummy 10MB payload instead of allocating it to save memory
+	size := int64(10 * 1024 * 1024)
 
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	req, err := http.NewRequest("POST", target, &dummyPayloadReader{remaining: size})
 	if err != nil {
 		return 0, err
 	}
+	req.ContentLength = size
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := client.Do(req)
