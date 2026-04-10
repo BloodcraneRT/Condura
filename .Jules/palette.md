@@ -9,3 +9,6 @@
 ## 2024-05-19 - Actionable Empty States
 **Learning:** Plain text empty states ("No tasks currently scheduled") are unhelpful to users and miss an opportunity to guide them. Adding visual weight (dashed borders, icons) and a call-to-action button that programmatically focuses the relevant input form (`document.getElementById("id").focus()`) significantly reduces friction for first-time users and improves accessibility.
 **Action:** When designing empty states for lists or tables, always include an actionable button that directs focus to the element needed to populate that list, and ensure the icon used is decorative with `aria-hidden="true"`.
+## 2026-04-10 - Playwright Locator Challenges with Complex Labels
+**Learning:** Playwright's `get_by_label` can struggle when labels contain visually distinct nested elements like asterisks for required fields (`<span aria-hidden="true">*</span>`), causing timeout errors.
+**Action:** When adding accessible required indicators inside labels, use explicit ID locators (e.g., `page.locator('#id')`) in verification scripts to bypass accessibility tree parsing complexities.
