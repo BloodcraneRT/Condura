@@ -1,3 +1,6 @@
 ## 2024-05-18 - math/bits Provides Significant Performance Boost
 **Learning:** Replacing manual bitwise counting loops with standard library functions from `math/bits` (like `bits.OnesCount8`) provides a significant performance boost for calculating bit errors in large payloads (~14x faster in my benchmarks) due to the use of optimized assembly instructions.
 **Action:** When working with bit-level analysis or manipulations across large buffers, always prefer `math/bits` library functions over manual loop structures.
+## 2024-05-18 - Avoiding Large Memory Allocations with custom io.Reader in HTTP Requests
+**Learning:** In synthetic test runners (like the 10MB upload test), allocating a large static byte array (e.g., `make([]byte, 10*1024*1024)`) on every request causes immense GC pressure and memory spikes. However, when replacing it with a custom `io.Reader` stream, `http.NewRequest` cannot automatically infer the size, requiring manual setting of `req.ContentLength`.
+**Action:** Always stream synthetic dummy payloads instead of pre-allocating large byte arrays. When doing this for `http.NewRequest`, you must explicitly set `req.ContentLength` since it cannot be automatically inferred from a custom reader.
