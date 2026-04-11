@@ -444,21 +444,42 @@ func runDownloadTest(target string) (int64, error) {
 	return bytesRead, err
 }
 
+// dummyReader generates repeating dummy bytes on the fly to avoid allocating large byte slices
+type dummyReader struct {
+	remaining int64
+}
+
+func (r *dummyReader) Read(p []byte) (n int, err error) {
+	if r.remaining <= 0 {
+		return 0, io.EOF
+	}
+	n = len(p)
+	if int64(n) > r.remaining {
+		n = int(r.remaining)
+	}
+	for i := 0; i < n; i++ {
+		p[i] = 'B'
+	}
+	r.remaining -= int64(n)
+	return n, nil
+}
+
 func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
+	size := int64(10 * 1024 * 1024)
 
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	// Bolt optimization: use a custom io.Reader to stream dummy bytes
+	// instead of pre-allocating a 10MB slice in memory
+	reader := &dummyReader{remaining: size}
+
+	req, err := http.NewRequest("POST", target, reader)
 	if err != nil {
 		return 0, err
 	}
+	// Explicitly set ContentLength since http.NewRequest cannot infer it from a custom io.Reader
+	req.ContentLength = size
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := client.Do(req)
