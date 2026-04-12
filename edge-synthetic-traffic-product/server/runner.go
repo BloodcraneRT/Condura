@@ -427,6 +427,29 @@ func runBERTTest(target string, ber *float64) error {
 	return nil
 }
 
+// dummyReader generates a synthetic payload on the fly without allocating a large buffer.
+type dummyReader struct {
+	total   int64
+	read    int64
+	pattern byte
+}
+
+func (r *dummyReader) Read(p []byte) (n int, err error) {
+	if r.read >= r.total {
+		return 0, io.EOF
+	}
+	rem := r.total - r.read
+	n = len(p)
+	if int64(n) > rem {
+		n = int(rem)
+	}
+	for i := range p[:n] {
+		p[i] = r.pattern
+	}
+	r.read += int64(n)
+	return n, nil
+}
+
 func runDownloadTest(target string) (int64, error) {
 	// A 60-second timeout allows for downloads up to ~2GB to complete depending on network speed
 	client := http.Client{Timeout: 60 * time.Second}
@@ -448,17 +471,17 @@ func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
+	// Bolt optimization: Stream a dummy 10MB payload instead of allocating it
+	// This reduces memory usage and GC pressure significantly
+	size := int64(10 * 1024 * 1024)
+	reader := &dummyReader{total: size, pattern: 'B'}
 
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	req, err := http.NewRequest("POST", target, reader)
 	if err != nil {
 		return 0, err
 	}
+	// We must explicitly set ContentLength when using a custom reader
+	req.ContentLength = size
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := client.Do(req)
