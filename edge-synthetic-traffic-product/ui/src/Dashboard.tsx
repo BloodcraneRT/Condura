@@ -51,6 +51,9 @@ export const Dashboard: React.FC = () => {
   const [newSourceName, setNewSourceName] = useState('');
   const [newSourceTarget, setNewSourceTarget] = useState('');
 
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [isSavingSource, setIsSavingSource] = useState(false);
+
   const fetchData = () => {
     fetch(`${API_URL}/ui/tasks`)
       .then(res => res.json())
@@ -83,6 +86,7 @@ export const Dashboard: React.FC = () => {
     e.preventDefault();
     if (!selectedSource) return;
 
+    setIsScheduling(true);
     fetch(`${API_URL}/ui/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -96,7 +100,7 @@ export const Dashboard: React.FC = () => {
     }).then(() => {
       alert("Task scheduled successfully!");
       fetchData();
-    }).catch(console.error);
+    }).catch(console.error).finally(() => setIsScheduling(false));
   };
 
   const handleDeleteTask = (id: string) => {
@@ -111,6 +115,7 @@ export const Dashboard: React.FC = () => {
     e.preventDefault();
     if (!newSourceName || !newSourceTarget) return;
 
+    setIsSavingSource(true);
     fetch(`${API_URL}/ui/sources`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -124,7 +129,7 @@ export const Dashboard: React.FC = () => {
       setNewSourceTarget('');
       fetchData();
       alert("Source added successfully!");
-    }).catch(console.error);
+    }).catch(console.error).finally(() => setIsSavingSource(false));
   };
 
   return (
@@ -186,7 +191,9 @@ export const Dashboard: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label htmlFor="source-target" className="block text-sm font-semibold text-gray-700 mb-2">Source Target</label>
+                <label htmlFor="source-target" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Source Target<span aria-hidden="true" className="text-rose-500 ml-1">*</span>
+                </label>
                 <select
                   id="source-target"
                   className="block w-full border-gray-200 bg-white py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-xl border shadow-sm transition-shadow"
@@ -224,8 +231,8 @@ export const Dashboard: React.FC = () => {
                   />
                 </div>
               )}
-              <button type="submit" className="w-full mt-4 justify-center py-3.5 px-4 text-sm font-bold rounded-xl text-white bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 shadow-md hover:shadow-lg transition-all focus:ring-2 focus:ring-offset-2 focus:ring-rose-500">
-                Run Task
+              <button type="submit" disabled={isScheduling} className="w-full mt-4 justify-center py-3.5 px-4 text-sm font-bold rounded-xl text-white bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 shadow-md hover:shadow-lg transition-all focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                {isScheduling ? 'Scheduling...' : 'Run Task'}
               </button>
             </form>
           </div>
@@ -235,7 +242,9 @@ export const Dashboard: React.FC = () => {
             <h2 className="text-xl font-bold mb-6 text-[#222222] tracking-tight">New Target Source</h2>
             <form onSubmit={handleCreateSource} className="space-y-6">
               <div>
-                <label htmlFor="source-name" className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
+                <label htmlFor="source-name" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Name<span aria-hidden="true" className="text-rose-500 ml-1">*</span>
+                </label>
                 <input
                   id="source-name"
                   type="text"
@@ -247,7 +256,9 @@ export const Dashboard: React.FC = () => {
                 />
               </div>
               <div>
-                <label htmlFor="source-target-url" className="block text-sm font-semibold text-gray-700 mb-2">Target URL or IP</label>
+                <label htmlFor="source-target-url" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Target URL or IP<span aria-hidden="true" className="text-rose-500 ml-1">*</span>
+                </label>
                 <input
                   id="source-target-url"
                   type="text"
@@ -258,8 +269,8 @@ export const Dashboard: React.FC = () => {
                   onChange={(e) => setNewSourceTarget(e.target.value)}
                 />
               </div>
-              <button type="submit" className="w-full mt-4 justify-center py-3.5 px-4 text-sm font-bold rounded-xl text-gray-700 bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-sm transition-all">
-                Save Target
+              <button type="submit" disabled={isSavingSource} className="w-full mt-4 justify-center py-3.5 px-4 text-sm font-bold rounded-xl text-gray-700 bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                {isSavingSource ? 'Saving...' : 'Save Target'}
               </button>
             </form>
           </div>
