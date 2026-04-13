@@ -444,21 +444,35 @@ func runDownloadTest(target string) (int64, error) {
 	return bytesRead, err
 }
 
+type dummyPayloadReader struct {
+	b byte
+}
+
+func (r dummyPayloadReader) Read(p []byte) (int, error) {
+	for i := range p {
+		p[i] = r.b
+	}
+	return len(p), nil
+}
+
 func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
 	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
+	size := int64(10 * 1024 * 1024)
 
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	// Bolt optimization: replaced statically allocated byte array with a custom io.Reader.
+	// This streams the dummy payload to avoid a large 10MB memory allocation per test run,
+	// reducing GC pressure.
+	reader := io.LimitReader(dummyPayloadReader{'B'}, size)
+
+	req, err := http.NewRequest("POST", target, reader)
 	if err != nil {
 		return 0, err
 	}
+	// http.NewRequest cannot infer ContentLength from a LimitReader, so we set it explicitly
+	req.ContentLength = size
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := client.Do(req)
