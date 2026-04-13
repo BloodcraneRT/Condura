@@ -444,21 +444,41 @@ func runDownloadTest(target string) (int64, error) {
 	return bytesRead, err
 }
 
+// dummyPayloadReader implements io.Reader to stream a constant byte without allocating a large buffer.
+type dummyPayloadReader struct {
+	remaining int64
+	char      byte
+}
+
+func (r *dummyPayloadReader) Read(p []byte) (n int, err error) {
+	if r.remaining <= 0 {
+		return 0, io.EOF
+	}
+	// Copy up to the length of p or remaining bytes
+	n = len(p)
+	if int64(n) > r.remaining {
+		n = int(r.remaining)
+	}
+	for i := 0; i < n; i++ {
+		p[i] = r.char
+	}
+	r.remaining -= int64(n)
+	return n, nil
+}
+
 func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
+	// Stream a 10MB payload instead of pre-allocating
+	size := int64(10 * 1024 * 1024)
+	reader := &dummyPayloadReader{remaining: size, char: 'B'}
 
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	req, err := http.NewRequest("POST", target, reader)
 	if err != nil {
 		return 0, err
 	}
+	req.ContentLength = size
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := client.Do(req)
