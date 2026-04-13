@@ -9,3 +9,8 @@
 ## 2024-05-19 - Actionable Empty States
 **Learning:** Plain text empty states ("No tasks currently scheduled") are unhelpful to users and miss an opportunity to guide them. Adding visual weight (dashed borders, icons) and a call-to-action button that programmatically focuses the relevant input form (`document.getElementById("id").focus()`) significantly reduces friction for first-time users and improves accessibility.
 **Action:** When designing empty states for lists or tables, always include an actionable button that directs focus to the element needed to populate that list, and ensure the icon used is decorative with `aria-hidden="true"`.
+## 2026-04-13 - Accessible Required Fields and Loading States
+
+**Learning:** This application extensively uses native fetch commands for form submissions without explicit loading states (`isSubmitting`), allowing users to click "Submit" multiple times or become confused during network delays. Additionally, while some inputs use the `required` HTML attribute, there is no visual indicator associating the label with this requirement, violating WCAG 3.3.2.
+
+**Action:** Always implement explicit boolean loading states (`isSubmitting`) bound to submit buttons via the `disabled` attribute, and use a ternary to swap the button text (e.g., `isSubmitting ? 'Saving...' : 'Save Target'`) to provide immediate user feedback. Furthermore, inject a visually distinctive, screen-reader-hidden required asterisk (`<span className="text-rose-500" aria-hidden="true">*</span>`) inside any label targeting a `required` input to ensure visual accessibility while preventing screen readers from redundantly announcing "asterisk required".
