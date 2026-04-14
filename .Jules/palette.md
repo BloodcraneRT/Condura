@@ -9,3 +9,10 @@
 ## 2024-05-19 - Actionable Empty States
 **Learning:** Plain text empty states ("No tasks currently scheduled") are unhelpful to users and miss an opportunity to guide them. Adding visual weight (dashed borders, icons) and a call-to-action button that programmatically focuses the relevant input form (`document.getElementById("id").focus()`) significantly reduces friction for first-time users and improves accessibility.
 **Action:** When designing empty states for lists or tables, always include an actionable button that directs focus to the element needed to populate that list, and ensure the icon used is decorative with `aria-hidden="true"`.
+## 2024-04-14 - Playwright Native Select Option Attach State
+**Learning:** In Playwright tests, when waiting for dynamically loaded options in a native `<select>` element to become available before interacting with them, default visibility checks (like `state: 'visible'`) often fail and cause timeouts because `<option>` tags are technically non-visible elements within the select.
+**Action:** Always use `{ state: 'attached' }` when using `waitForSelector` for native `<select>` options (e.g., `page.waitForSelector('select option[value="mock"]', { state: 'attached' })`) to reliably proceed with test automation after the DOM updates.
+
+## 2024-04-14 - Test Artifact Pollution Prevention
+**Learning:** When using temporary automated tools like Playwright to test frontend changes, it's very easy to accidentally commit large binary artifacts (like `.webm` videos) or test dependencies (`playwright`) to the repository, polluting `package.json` and lockfiles.
+**Action:** Always place test artifacts in temporary directories OUTSIDE the repository scope, or explicitly `rm` them. Always revert temporary dependency additions (e.g., `git restore package.json pnpm-lock.yaml`) before committing to strictly adhere to the persona constraint of not adding new dependencies.
