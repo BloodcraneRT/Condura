@@ -9,3 +9,9 @@
 ## 2024-05-19 - Actionable Empty States
 **Learning:** Plain text empty states ("No tasks currently scheduled") are unhelpful to users and miss an opportunity to guide them. Adding visual weight (dashed borders, icons) and a call-to-action button that programmatically focuses the relevant input form (`document.getElementById("id").focus()`) significantly reduces friction for first-time users and improves accessibility.
 **Action:** When designing empty states for lists or tables, always include an actionable button that directs focus to the element needed to populate that list, and ensure the icon used is decorative with `aria-hidden="true"`.
+## 2026-04-14 - Form Loading States and Accessible Required Indicators
+ **Learning:** Playwright interaction timeouts can occur when verifying dynamically loaded options if native elements (like select options) are technically hidden or unavailable due to backend state.
+ **Action:** Always explicitly handle API fetch state (e.g., using ) and visually communicate loading state (e.g., button disable/text change) so tests and screen-readers are aware of transition state without needing to rely entirely on hidden DOM element checks.
+## 2024-04-14 - Form Loading States and Accessible Required Indicators
+**Learning:** Playwright interaction timeouts can occur when verifying dynamically loaded options if native elements (like select options) are technically hidden or unavailable due to backend state.
+**Action:** Always explicitly handle API fetch state (e.g., using `.finally()`) and visually communicate loading state (e.g., button disable/text change) so tests and screen-readers are aware of transition state without needing to rely entirely on hidden DOM element checks.
