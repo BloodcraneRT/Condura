@@ -1,3 +1,6 @@
 ## 2024-05-18 - math/bits Provides Significant Performance Boost
 **Learning:** Replacing manual bitwise counting loops with standard library functions from `math/bits` (like `bits.OnesCount8`) provides a significant performance boost for calculating bit errors in large payloads (~14x faster in my benchmarks) due to the use of optimized assembly instructions.
 **Action:** When working with bit-level analysis or manipulations across large buffers, always prefer `math/bits` library functions over manual loop structures.
+## 2024-05-18 - Streaming Custom `io.Reader` for Synthetic Payloads
+**Learning:** In synthetic test runners, allocating large static byte slices repeatedly (e.g., `make([]byte, 10*1024*1024)`) for payload generation causes significant memory spikes and GC pressure. However, replacing it with a custom `io.Reader` implementation to stream the dummy payload directly into network buffers requires explicitly setting `req.ContentLength` when used with `http.NewRequest`, as Go's HTTP client cannot automatically infer the size from a custom generic reader, leading to unexpected chunked transfer encoding behavior if missed.
+**Action:** Always prefer a custom streaming `io.Reader` for generating large dummy payloads in Go to save memory, but explicitly set `ContentLength` manually when creating the HTTP request.

@@ -444,21 +444,47 @@ func runDownloadTest(target string) (int64, error) {
 	return bytesRead, err
 }
 
+// dummyReader streams a specific character up to a total size without allocating it all at once
+type dummyReader struct {
+	total int64
+	read  int64
+	char  byte
+}
+
+func (r *dummyReader) Read(p []byte) (n int, err error) {
+	if r.read >= r.total {
+		return 0, io.EOF
+	}
+
+	remaining := r.total - r.read
+	n = len(p)
+	if int64(n) > remaining {
+		n = int(remaining)
+	}
+
+	for i := 0; i < n; i++ {
+		p[i] = r.char
+	}
+
+	r.read += int64(n)
+	return n, nil
+}
+
 func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
+	// ⚡ Bolt optimization: Use a streaming reader for the dummy payload instead of
+	// pre-allocating a 10MB byte array to significantly reduce GC pressure and memory usage.
+	size := int64(10 * 1024 * 1024)
+	reader := &dummyReader{total: size, char: 'B'}
 
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	req, err := http.NewRequest("POST", target, reader)
 	if err != nil {
 		return 0, err
 	}
+	// Explicitly set ContentLength since NewRequest can't infer it from our custom reader
+	req.ContentLength = size
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := client.Do(req)
