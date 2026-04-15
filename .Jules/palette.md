@@ -9,3 +9,6 @@
 ## 2024-05-19 - Actionable Empty States
 **Learning:** Plain text empty states ("No tasks currently scheduled") are unhelpful to users and miss an opportunity to guide them. Adding visual weight (dashed borders, icons) and a call-to-action button that programmatically focuses the relevant input form (`document.getElementById("id").focus()`) significantly reduces friction for first-time users and improves accessibility.
 **Action:** When designing empty states for lists or tables, always include an actionable button that directs focus to the element needed to populate that list, and ensure the icon used is decorative with `aria-hidden="true"`.
+## 2025-02-27 - Required Input Attributes
+**Learning:** While visual indicators like a red asterisk inform sighted users that a field is required, relying solely on visual cues omits critical semantic information for screen readers and bypasses native browser form validation.
+**Action:** When adding visual required indicators to a form label, always ensure the corresponding HTML `<input>` or `<select>` element has the `required` attribute applied.
