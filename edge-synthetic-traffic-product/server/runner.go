@@ -444,21 +444,43 @@ func runDownloadTest(target string) (int64, error) {
 	return bytesRead, err
 }
 
+// dummyPayloadReader streams a continuous sequence of a single byte up to a total size.
+// Bolt optimization: this avoids pre-allocating large byte arrays for synthetic payloads,
+// saving memory and GC pressure.
+type dummyPayloadReader struct {
+	remaining int64
+	char      byte
+}
+
+func (d *dummyPayloadReader) Read(p []byte) (n int, err error) {
+	if d.remaining <= 0 {
+		return 0, io.EOF
+	}
+	n = len(p)
+	if int64(n) > d.remaining {
+		n = int(d.remaining)
+	}
+	for i := 0; i < n; i++ {
+		p[i] = d.char
+	}
+	d.remaining -= int64(n)
+	return n, nil
+}
+
 func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
 	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
+	size := int64(10 * 1024 * 1024)
+	reader := &dummyPayloadReader{remaining: size, char: 'B'}
 
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	req, err := http.NewRequest("POST", target, reader)
 	if err != nil {
 		return 0, err
 	}
+	// Must explicitly set ContentLength when using a custom reader
+	req.ContentLength = size
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := client.Do(req)
@@ -471,5 +493,5 @@ func runUploadTest(target string) (int64, error) {
 		return 0, fmt.Errorf("HTTP status: %d", resp.StatusCode)
 	}
 
-	return int64(size), nil
+	return size, nil
 }
