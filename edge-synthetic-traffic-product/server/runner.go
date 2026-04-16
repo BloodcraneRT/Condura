@@ -427,6 +427,27 @@ func runBERTTest(target string, ber *float64) error {
 	return nil
 }
 
+// dummyReader streams a repeating byte pattern without pre-allocating large slices.
+// This reduces GC pressure and memory usage in tests requiring large payloads.
+type dummyReader struct {
+	remaining int64
+}
+
+func (r *dummyReader) Read(p []byte) (n int, err error) {
+	if r.remaining <= 0 {
+		return 0, io.EOF
+	}
+	n = len(p)
+	if int64(n) > r.remaining {
+		n = int(r.remaining)
+	}
+	for i := 0; i < n; i++ {
+		p[i] = 'B'
+	}
+	r.remaining -= int64(n)
+	return n, nil
+}
+
 func runDownloadTest(target string) (int64, error) {
 	// A 60-second timeout allows for downloads up to ~2GB to complete depending on network speed
 	client := http.Client{Timeout: 60 * time.Second}
@@ -448,17 +469,17 @@ func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
+	// Create a dummy 10MB payload size
+	size := int64(10 * 1024 * 1024)
 
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	// Bolt optimization: use custom io.Reader instead of allocating 10MB static byte slice.
+	// This reduces GC pressure and memory allocation per test run significantly.
+	req, err := http.NewRequest("POST", target, &dummyReader{remaining: size})
 	if err != nil {
 		return 0, err
 	}
+	// Explicitly set ContentLength as it cannot be inferred from a custom reader
+	req.ContentLength = size
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := client.Do(req)
