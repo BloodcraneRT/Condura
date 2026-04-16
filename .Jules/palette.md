@@ -9,3 +9,6 @@
 ## 2024-05-19 - Actionable Empty States
 **Learning:** Plain text empty states ("No tasks currently scheduled") are unhelpful to users and miss an opportunity to guide them. Adding visual weight (dashed borders, icons) and a call-to-action button that programmatically focuses the relevant input form (`document.getElementById("id").focus()`) significantly reduces friction for first-time users and improves accessibility.
 **Action:** When designing empty states for lists or tables, always include an actionable button that directs focus to the element needed to populate that list, and ensure the icon used is decorative with `aria-hidden="true"`.
+## 2024-05-19 - Dialog Handling in Playwright UI Verifications
+**Learning:** When using Playwright to verify UI workflows (e.g., testing form submissions), native `alert()` dialogs (used frequently in this app for success notifications) will pause or fail the script with 'Cannot accept dialog which is already handled!' if not managed correctly.
+**Action:** Always wrap the dialog accept call in a try/catch block (e.g., `page.on('dialog', async dialog => { try { await dialog.accept(); } catch(e) {} });`) to prevent script termination during automated frontend verification tasks.
