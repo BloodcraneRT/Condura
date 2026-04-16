@@ -444,21 +444,49 @@ func runDownloadTest(target string) (int64, error) {
 	return bytesRead, err
 }
 
+// dummyUploadReader generates a synthetic payload on the fly to avoid
+// allocating a large byte slice in memory during upload tests.
+type dummyUploadReader struct {
+	size int64
+	read int64
+}
+
+func (r *dummyUploadReader) Read(p []byte) (n int, err error) {
+	if r.read >= r.size {
+		return 0, io.EOF
+	}
+
+	n = len(p)
+	remaining := r.size - r.read
+	if int64(n) > remaining {
+		n = int(remaining)
+	}
+
+	for i := 0; i < n; i++ {
+		p[i] = 'B'
+	}
+
+	r.read += int64(n)
+	return n, nil
+}
+
 func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
+	// Bolt Optimization: Replace 10MB static byte slice with a streaming reader.
+	// This significantly reduces memory allocation and GC pressure during concurrent synthetic tests.
+	size := int64(10 * 1024 * 1024)
+	reader := &dummyUploadReader{size: size}
 
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	req, err := http.NewRequest("POST", target, reader)
 	if err != nil {
 		return 0, err
 	}
+
+	// When using a custom io.Reader, http.NewRequest cannot automatically infer the ContentLength.
+	// We must set it explicitly, otherwise the request might use chunked encoding or fail.
+	req.ContentLength = size
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := client.Do(req)
