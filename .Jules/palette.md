@@ -9,3 +9,11 @@
 ## 2024-05-19 - Actionable Empty States
 **Learning:** Plain text empty states ("No tasks currently scheduled") are unhelpful to users and miss an opportunity to guide them. Adding visual weight (dashed borders, icons) and a call-to-action button that programmatically focuses the relevant input form (`document.getElementById("id").focus()`) significantly reduces friction for first-time users and improves accessibility.
 **Action:** When designing empty states for lists or tables, always include an actionable button that directs focus to the element needed to populate that list, and ensure the icon used is decorative with `aria-hidden="true"`.
+
+## 2024-04-16 - Prevent extraneous UI dependencies during verifications
+**Learning:** Adding Playwright directly to the project's `package.json` for a quick automated check inflates the project lockfile and adds heavy dev dependencies unnecessarily, especially since tests weren't formally added to the repo.
+**Action:** When installing temporary tooling like Playwright (`pnpm add -D playwright`) to verify a UI change via script, immediately discard the changes to `package.json` and `pnpm-lock.yaml` using `git restore --staged` and `git checkout` after verification is complete.
+
+## 2024-04-16 - Required indicators must be paired with HTML attributes
+**Learning:** Adding visual required indicators (e.g. `<span aria-hidden="true">*</span>`) to form labels improves visual accessibility, but screen readers and native form validation will fail to enforce it unless the corresponding input also has the `required` HTML attribute.
+**Action:** Always ensure any `<input>` or `<select>` element matched to a "required" label explicitly includes the `required` attribute.
