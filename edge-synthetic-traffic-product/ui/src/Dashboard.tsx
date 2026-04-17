@@ -51,6 +51,10 @@ export const Dashboard: React.FC = () => {
   const [newSourceName, setNewSourceName] = useState('');
   const [newSourceTarget, setNewSourceTarget] = useState('');
 
+  // Loading states
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [isSavingSource, setIsSavingSource] = useState(false);
+
   const fetchData = () => {
     fetch(`${API_URL}/ui/tasks`)
       .then(res => res.json())
@@ -82,6 +86,7 @@ export const Dashboard: React.FC = () => {
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSource) return;
+    setIsScheduling(true);
 
     fetch(`${API_URL}/ui/tasks`, {
       method: 'POST',
@@ -96,7 +101,7 @@ export const Dashboard: React.FC = () => {
     }).then(() => {
       alert("Task scheduled successfully!");
       fetchData();
-    }).catch(console.error);
+    }).catch(console.error).finally(() => setIsScheduling(false));
   };
 
   const handleDeleteTask = (id: string) => {
@@ -110,6 +115,7 @@ export const Dashboard: React.FC = () => {
   const handleCreateSource = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSourceName || !newSourceTarget) return;
+    setIsSavingSource(true);
 
     fetch(`${API_URL}/ui/sources`, {
       method: 'POST',
@@ -124,7 +130,7 @@ export const Dashboard: React.FC = () => {
       setNewSourceTarget('');
       fetchData();
       alert("Source added successfully!");
-    }).catch(console.error);
+    }).catch(console.error).finally(() => setIsSavingSource(false));
   };
 
   return (
@@ -186,7 +192,7 @@ export const Dashboard: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label htmlFor="source-target" className="block text-sm font-semibold text-gray-700 mb-2">Source Target</label>
+                <label htmlFor="source-target" className="block text-sm font-semibold text-gray-700 mb-2">Source Target<span aria-hidden="true" className="text-rose-500 ml-1">*</span></label>
                 <select
                   id="source-target"
                   className="block w-full border-gray-200 bg-white py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-xl border shadow-sm transition-shadow"
@@ -224,8 +230,8 @@ export const Dashboard: React.FC = () => {
                   />
                 </div>
               )}
-              <button type="submit" className="w-full mt-4 justify-center py-3.5 px-4 text-sm font-bold rounded-xl text-white bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 shadow-md hover:shadow-lg transition-all focus:ring-2 focus:ring-offset-2 focus:ring-rose-500">
-                Run Task
+              <button type="submit" disabled={isScheduling} className="w-full mt-4 justify-center py-3.5 px-4 text-sm font-bold rounded-xl text-white bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 shadow-md hover:shadow-lg transition-all focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 disabled:opacity-70 disabled:cursor-not-allowed">
+                {isScheduling ? 'Scheduling...' : 'Run Task'}
               </button>
             </form>
           </div>
@@ -235,7 +241,7 @@ export const Dashboard: React.FC = () => {
             <h2 className="text-xl font-bold mb-6 text-[#222222] tracking-tight">New Target Source</h2>
             <form onSubmit={handleCreateSource} className="space-y-6">
               <div>
-                <label htmlFor="source-name" className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
+                <label htmlFor="source-name" className="block text-sm font-semibold text-gray-700 mb-2">Name<span aria-hidden="true" className="text-rose-500 ml-1">*</span></label>
                 <input
                   id="source-name"
                   type="text"
@@ -247,7 +253,7 @@ export const Dashboard: React.FC = () => {
                 />
               </div>
               <div>
-                <label htmlFor="source-target-url" className="block text-sm font-semibold text-gray-700 mb-2">Target URL or IP</label>
+                <label htmlFor="source-target-url" className="block text-sm font-semibold text-gray-700 mb-2">Target URL or IP<span aria-hidden="true" className="text-rose-500 ml-1">*</span></label>
                 <input
                   id="source-target-url"
                   type="text"
@@ -258,8 +264,8 @@ export const Dashboard: React.FC = () => {
                   onChange={(e) => setNewSourceTarget(e.target.value)}
                 />
               </div>
-              <button type="submit" className="w-full mt-4 justify-center py-3.5 px-4 text-sm font-bold rounded-xl text-gray-700 bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-sm transition-all">
-                Save Target
+              <button type="submit" disabled={isSavingSource} className="w-full mt-4 justify-center py-3.5 px-4 text-sm font-bold rounded-xl text-gray-700 bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                {isSavingSource ? 'Saving...' : 'Save Target'}
               </button>
             </form>
           </div>
@@ -321,7 +327,10 @@ export const Dashboard: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                   <p className="text-sm font-bold text-[#222222] mb-1">No traffic logs yet</p>
-                  <p className="text-xs text-gray-500 max-w-sm">Logs will appear here once your scheduled tasks start executing.</p>
+                  <p className="text-xs text-gray-500 max-w-sm mb-4">Logs will appear here once your scheduled tasks start executing.</p>
+                  <button onClick={() => document.getElementById('test-type')?.focus()} className="px-4 py-2 bg-white text-sm font-bold text-[#222222] rounded-xl border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-rose-500 focus-visible:outline-none transition-all">
+                    Schedule a test
+                  </button>
                 </li>
               ) : (
                 results.map(res => (

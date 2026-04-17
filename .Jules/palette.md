@@ -9,3 +9,6 @@
 ## 2024-05-19 - Actionable Empty States
 **Learning:** Plain text empty states ("No tasks currently scheduled") are unhelpful to users and miss an opportunity to guide them. Adding visual weight (dashed borders, icons) and a call-to-action button that programmatically focuses the relevant input form (`document.getElementById("id").focus()`) significantly reduces friction for first-time users and improves accessibility.
 **Action:** When designing empty states for lists or tables, always include an actionable button that directs focus to the element needed to populate that list, and ensure the icon used is decorative with `aria-hidden="true"`.
+## 2024-05-20 - Nested Elements in Accessibility Labels
+**Learning:** Adding visually distinct nested elements (like `<span aria-hidden="true">*</span>` for required indicators) inside `<label>` elements creates complex accessibility DOM trees. This causes issues for end-to-end testing tools like Playwright, specifically breaking generic selectors like `page.get_by_label()`.
+**Action:** When working with forms containing nested label elements, always use explicit ID locators (`page.locator('#id')`) instead of generic label lookups to ensure robust frontend verification.
