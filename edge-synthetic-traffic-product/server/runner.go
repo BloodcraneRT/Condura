@@ -444,21 +444,43 @@ func runDownloadTest(target string) (int64, error) {
 	return bytesRead, err
 }
 
+// dummyPayloadReader streams a repeating byte up to a total size
+type dummyPayloadReader struct {
+	total int64
+	read  int64
+	b     byte
+}
+
+func (r *dummyPayloadReader) Read(p []byte) (n int, err error) {
+	if r.read >= r.total {
+		return 0, io.EOF
+	}
+	rem := r.total - r.read
+	toRead := int64(len(p))
+	if toRead > rem {
+		toRead = rem
+	}
+	for i := int64(0); i < toRead; i++ {
+		p[i] = r.b
+	}
+	r.read += toRead
+	return int(toRead), nil
+}
+
 func runUploadTest(target string) (int64, error) {
 	// A 60-second timeout allows for slow uploads
 	client := http.Client{Timeout: 60 * time.Second}
 
-	// Create a dummy 10MB payload
-	size := 10 * 1024 * 1024
-	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = 'B'
-	}
+	// Stream a dummy 10MB payload instead of allocating a large byte slice
+	size := int64(10 * 1024 * 1024)
+	reader := &dummyPayloadReader{total: size, b: 'B'}
 
-	req, err := http.NewRequest("POST", target, bytes.NewReader(payload))
+	req, err := http.NewRequest("POST", target, reader)
 	if err != nil {
 		return 0, err
 	}
+	// Bolt optimization: Custom reader cannot be sized by http.NewRequest automatically
+	req.ContentLength = size
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := client.Do(req)
@@ -471,5 +493,5 @@ func runUploadTest(target string) (int64, error) {
 		return 0, fmt.Errorf("HTTP status: %d", resp.StatusCode)
 	}
 
-	return int64(size), nil
+	return size, nil
 }
