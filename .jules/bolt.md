@@ -1,7 +1,3 @@
-## 2024-05-18 - math/bits Provides Significant Performance Boost
-**Learning:** Replacing manual bitwise counting loops with standard library functions from `math/bits` (like `bits.OnesCount8`) provides a significant performance boost for calculating bit errors in large payloads (~14x faster in my benchmarks) due to the use of optimized assembly instructions.
-**Action:** When working with bit-level analysis or manipulations across large buffers, always prefer `math/bits` library functions over manual loop structures.
-
-## 2024-05-19 - Using io.Reader streaming instead of pre-allocated slices for memory optimization
-**Learning:** Pre-allocating large static byte slices (like a 10MB dummy payload array) for synthetic traffic tests creates significant unnecessary memory pressure and garbage collection overhead, especially under concurrent load. Streaming dummy payloads directly to an HTTP request using a custom `io.Reader` implementation eliminates this large upfront allocation entirely. However, when doing this for `http.NewRequest`, you must explicitly set `req.ContentLength` since it cannot be automatically inferred from a custom interface.
-**Action:** For performance optimization in synthetic test runners, avoid allocating large static byte slices repeatedly inside functions. Use a custom `io.Reader` implementation to stream synthetic dummy payloads instead to reduce GC pressure and memory usage, and remember to explicitly set the content length.
+## 2024-05-24 - Optimization of dummyPayloadReader
+**Learning:** Found that a manual loop to fill a byte slice (`for i := int64(0); i < toRead; i++ { p[i] = r.b }`) in `dummyPayloadReader.Read` is very slow compared to the logarithmic `copy` method.
+**Action:** Replace `for loop` with `p[0] = r.b; for i := 1; i < len; i *= 2 { copy(p[i:], p[:i]) }` for performance improvements.
