@@ -182,6 +182,10 @@ func runRFC2544Test(target string, jitter *float64, packetLoss *float64, through
 	var previousLatency time.Duration
 	var totalJitter time.Duration
 
+	// Bolt optimization: Pre-allocate receive buffer outside the loop
+	// to avoid 100 allocations of 1.4KB and reduce GC pressure.
+	recv := make([]byte, payloadSize)
+
 	for i := 0; i < burstCount; i++ {
 		start := time.Now()
 		_, err := conn.Write(payload)
@@ -193,7 +197,6 @@ func runRFC2544Test(target string, jitter *float64, packetLoss *float64, through
 		// For this simple simulation, we just blast and assume network stack absorption,
 		// or if there's a simple echo server, we read it. Let's do a quick read with tight timeout.
 		conn.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
-		recv := make([]byte, payloadSize)
 		_, err = conn.Read(recv)
 
 		latency := time.Since(start)
