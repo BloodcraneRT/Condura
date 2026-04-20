@@ -173,8 +173,11 @@ func runRFC2544Test(target string, jitter *float64, packetLoss *float64, through
 
 	payloadSize := 1400 // bytes
 	payload := make([]byte, payloadSize)
-	for i := range payload {
-		payload[i] = 0xFF
+	if payloadSize > 0 {
+		payload[0] = 0xFF
+		for i := 1; i < payloadSize; i *= 2 {
+			copy(payload[i:payloadSize], payload[:i])
+		}
 	}
 
 	burstCount := 100
@@ -463,8 +466,13 @@ func (r *dummyPayloadReader) Read(p []byte) (n int, err error) {
 		toRead = remaining
 	}
 
-	for i := int64(0); i < toRead; i++ {
-		p[i] = r.b
+	// Bolt optimization: use logarithmic doubling with copy() for significantly faster byte filling
+	// This avoids the overhead of single-byte assignments in a loop and uses optimized memory moves
+	if toRead > 0 {
+		p[0] = r.b
+		for i := 1; i < int(toRead); i *= 2 {
+			copy(p[i:toRead], p[:i])
+		}
 	}
 
 	r.read += toRead
