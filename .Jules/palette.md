@@ -12,3 +12,6 @@
 ## 2024-05-20 - Form Required Indicators and Loading States
 **Learning:** Required forms without explicit visual indicators cause friction, and asynchronous submission buttons without loading states and disabled classes (like `disabled:opacity-70 disabled:cursor-not-allowed`) can lead to double submissions and poor user feedback.
 **Action:** Always include clear visual indicators (e.g., `<span aria-hidden="true" className="text-rose-500 ml-1">*</span>`) for required fields to aid users. Also, ensure async form submit handlers utilize state (`isSubmitting`) wrapped in a `.finally()` block to consistently toggle disabled states and "Saving..." text on submit buttons.
+## 2026-04-20 - Destructive Action Protection
+**Learning:** In edge-synthetic-traffic-product, destructive actions like deleting tasks were previously executed immediately upon clicking a "Delete" button without any user confirmation, leading to a high risk of accidental data loss.
+**Action:** Always wrap destructive UI actions (such as deletion or configuration removal) in a confirmation dialog (e.g., `window.confirm('Are you sure...?')`) to interrupt the flow and ensure intentionality before triggering the backend request.
