@@ -463,8 +463,13 @@ func (r *dummyPayloadReader) Read(p []byte) (n int, err error) {
 		toRead = remaining
 	}
 
-	for i := int64(0); i < toRead; i++ {
-		p[i] = r.b
+	// Bolt optimization: logarithmic doubling approach with copy()
+	// This is significantly faster than a manual loop for filling large buffers
+	if toRead > 0 {
+		p[0] = r.b
+		for i := int64(1); i < toRead; i *= 2 {
+			copy(p[i:toRead], p[:i])
+		}
 	}
 
 	r.read += toRead
