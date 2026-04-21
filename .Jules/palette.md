@@ -12,3 +12,6 @@
 ## 2024-05-20 - Form Required Indicators and Loading States
 **Learning:** Required forms without explicit visual indicators cause friction, and asynchronous submission buttons without loading states and disabled classes (like `disabled:opacity-70 disabled:cursor-not-allowed`) can lead to double submissions and poor user feedback.
 **Action:** Always include clear visual indicators (e.g., `<span aria-hidden="true" className="text-rose-500 ml-1">*</span>`) for required fields to aid users. Also, ensure async form submit handlers utilize state (`isSubmitting`) wrapped in a `.finally()` block to consistently toggle disabled states and "Saving..." text on submit buttons.
+## 2024-05-21 - Destructive Actions and Confirmations
+**Learning:** Destructive actions like deleting a task should not happen instantaneously, as users might accidentally trigger them, resulting in a poor user experience and data loss.
+**Action:** Always wrap destructive operations (like API DELETE calls) within a `window.confirm` dialog or similar to verify user intent before proceeding.
