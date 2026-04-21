@@ -463,8 +463,15 @@ func (r *dummyPayloadReader) Read(p []byte) (n int, err error) {
 		toRead = remaining
 	}
 
-	for i := int64(0); i < toRead; i++ {
-		p[i] = r.b
+	toReadInt := int(toRead)
+	if toReadInt > 0 {
+		p[0] = r.b
+		// Bolt optimization: use exponential block copying (O(log N)) instead of
+		// byte-by-byte assignment loop (O(N)). This is drastically faster for large arrays
+		// because it utilizes optimized memory moves under the hood.
+		for i := 1; i < toReadInt; i *= 2 {
+			copy(p[i:toReadInt], p[:i])
+		}
 	}
 
 	r.read += toRead
