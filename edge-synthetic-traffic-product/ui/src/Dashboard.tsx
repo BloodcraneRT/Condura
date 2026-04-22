@@ -104,6 +104,10 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleDeleteTask = (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this task?")) {
+      return;
+    }
+
     fetch(`${API_URL}/ui/tasks?id=${id}`, {
       method: 'DELETE'
     }).then(() => {
