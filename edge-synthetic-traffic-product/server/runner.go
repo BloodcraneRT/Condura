@@ -463,12 +463,18 @@ func (r *dummyPayloadReader) Read(p []byte) (n int, err error) {
 		toRead = remaining
 	}
 
-	for i := int64(0); i < toRead; i++ {
-		p[i] = r.b
+	toReadInt := int(toRead)
+	if toReadInt > 0 {
+		target := p[:toReadInt]
+		target[0] = r.b
+		// Bolt optimization: use logarithmic doubling copy for significantly faster buffer filling
+		for i := 1; i < toReadInt; i *= 2 {
+			copy(target[i:], target[:i])
+		}
 	}
 
 	r.read += toRead
-	return int(toRead), nil
+	return toReadInt, nil
 }
 
 func runUploadTest(target string) (int64, error) {
