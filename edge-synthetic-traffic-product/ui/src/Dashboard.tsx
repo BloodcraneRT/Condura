@@ -104,11 +104,13 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleDeleteTask = (id: string) => {
-    fetch(`${API_URL}/ui/tasks?id=${id}`, {
-      method: 'DELETE'
-    }).then(() => {
-      fetchData();
-    }).catch(console.error);
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      fetch(`${API_URL}/ui/tasks?id=${id}`, {
+        method: 'DELETE'
+      }).then(() => {
+        fetchData();
+      }).catch(console.error);
+    }
   };
 
   const handleCreateSource = (e: React.FormEvent) => {
