@@ -292,8 +292,12 @@ func handleDownloadData(w http.ResponseWriter, r *http.Request) {
 		remaining := sizeBytes - 12
 		chunkSize := int64(1024 * 1024)
 		chunk := make([]byte, chunkSize)
-		for i := range chunk {
-			chunk[i] = 'A'
+		if len(chunk) > 0 {
+			chunk[0] = 'A'
+			// Bolt optimization: use logarithmic doubling with copy() for large arrays
+			for j := 1; j < len(chunk); j *= 2 {
+				copy(chunk[j:], chunk[:j])
+			}
 		}
 		for remaining > 0 {
 			writeSize := remaining
