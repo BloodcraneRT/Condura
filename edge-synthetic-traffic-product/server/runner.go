@@ -390,8 +390,15 @@ func runBERTTest(target string, ber *float64) error {
 	// Generate a known Pseudo-Random Binary Sequence (PRBS-like)
 	size := 1024 * 1024 // 1 MB payload
 	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = byte((i * 13) % 256) // Deterministic pattern
+
+	// Bolt optimization: Pre-calculate the 256-byte repeating pattern and use logarithmic doubling
+	pattern := make([]byte, 256)
+	for i := range pattern {
+		pattern[i] = byte((i * 13) % 256) // Deterministic pattern
+	}
+	copy(payload, pattern)
+	for j := 256; j < len(payload); j *= 2 {
+		copy(payload[j:], payload[:j])
 	}
 
 	// Send payload
@@ -463,8 +470,12 @@ func (r *dummyPayloadReader) Read(p []byte) (n int, err error) {
 		toRead = remaining
 	}
 
-	for i := int64(0); i < toRead; i++ {
-		p[i] = r.b
+	if toRead > 0 {
+		// Bolt optimization: use logarithmic doubling copy instead of for loop
+		p[0] = r.b
+		for i := 1; i < int(toRead); i *= 2 {
+			copy(p[i:], p[:i])
+		}
 	}
 
 	r.read += toRead
