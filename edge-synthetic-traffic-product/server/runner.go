@@ -340,8 +340,11 @@ func runOstinatoStream(target string, cfg models.OstinatoConfig) (int64, string,
 
 	payload := make([]byte, packetSize)
 	// fill with junk
-	for i := range payload {
+	for i := 0; i < 256 && i < packetSize; i++ {
 		payload[i] = byte(i % 256)
+	}
+	for i := 256; i < packetSize; i *= 2 {
+		copy(payload[i:], payload[:i])
 	}
 
 	ticker := time.NewTicker(time.Second / time.Duration(pps))
@@ -390,8 +393,11 @@ func runBERTTest(target string, ber *float64) error {
 	// Generate a known Pseudo-Random Binary Sequence (PRBS-like)
 	size := 1024 * 1024 // 1 MB payload
 	payload := make([]byte, size)
-	for i := range payload {
+	for i := 0; i < 256 && i < size; i++ {
 		payload[i] = byte((i * 13) % 256) // Deterministic pattern
+	}
+	for i := 256; i < size; i *= 2 {
+		copy(payload[i:], payload[:i])
 	}
 
 	// Send payload
