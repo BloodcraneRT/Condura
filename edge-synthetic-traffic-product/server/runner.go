@@ -390,8 +390,12 @@ func runBERTTest(target string, ber *float64) error {
 	// Generate a known Pseudo-Random Binary Sequence (PRBS-like)
 	size := 1024 * 1024 // 1 MB payload
 	payload := make([]byte, size)
-	for i := range payload {
-		payload[i] = byte((i * 13) % 256) // Deterministic pattern
+	// Bolt optimization: use logarithmic doubling with copy() for faster payload generation
+	for i := 0; i < 256; i++ {
+		payload[i] = byte((i * 13) % 256) // Deterministic pattern base
+	}
+	for i := 256; i < size; i *= 2 {
+		copy(payload[i:], payload[:i])
 	}
 
 	// Send payload
