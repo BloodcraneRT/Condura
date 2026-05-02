@@ -12,3 +12,6 @@
 ## 2024-05-20 - Form Required Indicators and Loading States
 **Learning:** Required forms without explicit visual indicators cause friction, and asynchronous submission buttons without loading states and disabled classes (like `disabled:opacity-70 disabled:cursor-not-allowed`) can lead to double submissions and poor user feedback.
 **Action:** Always include clear visual indicators (e.g., `<span aria-hidden="true" className="text-rose-500 ml-1">*</span>`) for required fields to aid users. Also, ensure async form submit handlers utilize state (`isSubmitting`) wrapped in a `.finally()` block to consistently toggle disabled states and "Saving..." text on submit buttons.
+## 2026-05-02 - Delete Task Confirmation Dialog
+**Learning:** Destructive actions like deleting a task were executing immediately upon clicking a button that was hidden behind an `opacity-0` hover state, leading to potential accidental data loss for users.
+**Action:** Always wrap destructive UI actions (such as deleting tasks or configurations) in a confirmation dialog (e.g., `window.confirm`) to prevent accidental data loss and adhere to the project's UX standards.
