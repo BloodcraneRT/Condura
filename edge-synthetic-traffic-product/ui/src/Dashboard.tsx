@@ -103,12 +103,14 @@ export const Dashboard: React.FC = () => {
       .finally(() => setIsScheduling(false));
   };
 
-  const handleDeleteTask = (id: string) => {
-    fetch(`${API_URL}/ui/tasks?id=${id}`, {
-      method: 'DELETE'
-    }).then(() => {
-      fetchData();
-    }).catch(console.error);
+  const handleDeleteTask = (id: string, type: string) => {
+    if (window.confirm(`Are you sure you want to delete this ${type} task?`)) {
+      fetch(`${API_URL}/ui/tasks?id=${id}`, {
+        method: 'DELETE'
+      }).then(() => {
+        fetchData();
+      }).catch(console.error);
+    }
   };
 
   const handleCreateSource = (e: React.FormEvent) => {
@@ -310,7 +312,7 @@ export const Dashboard: React.FC = () => {
                       </div>
                     </div>
                     <button
-                      onClick={() => handleDeleteTask(task.id)}
+                      onClick={() => handleDeleteTask(task.id, task.type)}
                       className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl hover:bg-red-100 transition-all"
                       aria-label={`Delete task ${task.type}`}
                     >
