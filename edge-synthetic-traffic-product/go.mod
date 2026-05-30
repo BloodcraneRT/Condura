@@ -1,6 +1,6 @@
 module github.com/edgesynth/edgesynth
 
-go 1.25.0
+go 1.24.3
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.44.0

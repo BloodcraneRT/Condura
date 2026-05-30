@@ -52,9 +52,27 @@ func initDB(connStr string) (*DB, error) {
 			{ID: uuid.New().String(), Name: "CoinDesk Bitcoin Price", Target: "https://api.coindesk.com/v1/bpi/currentprice.json", IsDefault: true},
 			{ID: uuid.New().String(), Name: "Sample PCAP (FlowTest)", Target: "https://raw.githubusercontent.com/CESNET/FlowTest/master/test/testbed/generator/templates/pcap/dns.pcap", IsDefault: true},
 		}
+		tx, err := db.Begin()
+		if err != nil {
+			return nil, fmt.Errorf("failed to begin transaction for seeding sources: %w", err)
+		}
+		stmt, err := tx.Prepare(`INSERT INTO sources (id, name, target, is_default) VALUES (?, ?, ?, ?)`)
+		if err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("failed to prepare statement for seeding sources: %w", err)
+		}
+		defer stmt.Close()
+
 		for _, s := range defaultSources {
-			db.Exec(`INSERT INTO sources (id, name, target, is_default) VALUES (?, ?, ?, ?)`,
-				s.ID, s.Name, s.Target, s.IsDefault)
+			_, err := stmt.Exec(s.ID, s.Name, s.Target, s.IsDefault)
+			if err != nil {
+				tx.Rollback()
+				return nil, fmt.Errorf("failed to execute insert for source %s: %w", s.Name, err)
+			}
+		}
+
+		if err := tx.Commit(); err != nil {
+			return nil, fmt.Errorf("failed to commit transaction for seeding sources: %w", err)
 		}
 	}
 
