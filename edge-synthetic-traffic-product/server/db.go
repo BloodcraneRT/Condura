@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	_ "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/edgesynth/edgesynth/pkg/models"
 	"github.com/google/uuid"
 )
